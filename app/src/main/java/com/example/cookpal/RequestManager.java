@@ -39,7 +39,7 @@ public class RequestManager {
 
             @Override
             public void onFailure(Call<RandomRecipeApiResponse> call, Throwable t) {
-            listener.didError(t.getMessage());
+                listener.didError(t.getMessage());
             }
         });
     }

@@ -1,4 +1,16 @@
 <resources>
     <string name="app_name">CookPal</string>
     <string name="api_key">460a9e41f6fe4aa1bb57f481487532a0</string>
+    
+    <string-array name="tags">
+        <item>Main course</item>
+        <item>Side dish</item>
+        <item>Dessert</item>
+        <item>Appetizer</item>
+        <item>Salad</item>
+        <item>Bread</item>
+        <item>Breakfast</item>
+        <item>Soup</item>
+    </string-array>
+
 </resources>
