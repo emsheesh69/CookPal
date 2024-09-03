@@ -44,6 +44,21 @@
             android:imeOptions="actionSearch" />
     </LinearLayout>
 
+    <androidx.cardview.widget.CardView
+        android:layout_width="match_parent"
+        app:cardElevation="100dp"
+        android:layout_margin="3dp"
+        android:layout_height="wrap_content">
+        <SearchView
+            android:id="@+id/searchView_home"
+            android:queryHint="Search recipe..."
+            android:iconifiedByDefault="false"
+
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+        </SearchView>
+    </androidx.cardview.widget.CardView>
     <!-- Recommended Recipes RecyclerView -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recycler_recommended"

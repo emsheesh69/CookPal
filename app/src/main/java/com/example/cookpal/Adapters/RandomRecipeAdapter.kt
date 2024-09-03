@@ -1,4 +1,5 @@
 import android.content.Context
+import android.content.Intent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -7,16 +8,19 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.cookpal.Models.Recipe
 import com.example.cookpal.R
+import com.example.cookpal.RecipeDetails
+import com.example.cookpal.listeners.ClickedRecipeListener
 import com.squareup.picasso.Picasso
 
 class RandomRecipeAdapter(
     private val context: Context,
     private val recipeList: List<Recipe>,
-    private val tags: List<String> // Add tags as a parameter
+    private val tags: List<String>,
+    private val listener: ClickedRecipeListener
 ) : RecyclerView.Adapter<RandomRecipeAdapter.RandomRecipeViewHolder>() {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RandomRecipeViewHolder {
-        val view: View = LayoutInflater.from(context).inflate(R.layout.list_random_recipe, parent, false)
+        val view = LayoutInflater.from(context).inflate(R.layout.list_random_recipe, parent, false)
         return RandomRecipeViewHolder(view)
     }
 
@@ -28,15 +32,21 @@ class RandomRecipeAdapter(
 
         // Example usage of tags; adjust according to your needs
         holder.textViewTags.text = tags.joinToString(", ")
+
+        holder.itemView.setOnClickListener {
+            // Start RecipeDetailsActivity with the clicked recipe's ID
+            val intent = Intent(context, RecipeDetails::class.java).apply {
+                putExtra("id", recipe.id.toString())
+            }
+            context.startActivity(intent)
+        }
     }
 
-    override fun getItemCount(): Int {
-        return recipeList.size
-    }
+    override fun getItemCount(): Int = recipeList.size
 
     class RandomRecipeViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        var textViewTitle: TextView = itemView.findViewById(R.id.textView_title)
-        var imageViewFood: ImageView = itemView.findViewById(R.id.imageView_food)
-        var textViewTags: TextView = itemView.findViewById(R.id.textView_tags) // Ensure this view exists in your layout
+        val textViewTitle: TextView = itemView.findViewById(R.id.textView_title)
+        val imageViewFood: ImageView = itemView.findViewById(R.id.imageView_food)
+        val textViewTags: TextView = itemView.findViewById(R.id.textView_tags)
     }
 }
