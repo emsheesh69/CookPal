@@ -30,11 +30,9 @@ class RandomRecipeAdapter(
         holder.textViewTitle.isSelected = true
         Picasso.get().load(recipe.image).into(holder.imageViewFood)
 
-        // Example usage of tags; adjust according to your needs
         holder.textViewTags.text = tags.joinToString(", ")
 
         holder.itemView.setOnClickListener {
-            // Start RecipeDetailsActivity with the clicked recipe's ID
             val intent = Intent(context, RecipeDetails::class.java).apply {
                 putExtra("id", recipe.id.toString())
             }

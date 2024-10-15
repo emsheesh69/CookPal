@@ -1,6 +1,7 @@
 package com.example.cookpal
 
 import RandomRecipeAdapter
+import com.example.cookpal.adapters.ComplexSearchAdapter
 import android.app.ProgressDialog
 import android.content.Intent
 import android.os.Bundle
@@ -13,8 +14,10 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.example.cookpal.Models.ComplexSearchApiResponse
 import com.example.cookpal.Models.RandomRecipeApiResponse
 import com.example.cookpal.listeners.ClickedRecipeListener
+import com.example.cookpal.listeners.ComplexSearchListener
 import com.example.cookpal.listeners.RandomRecipeResponseListener
 
 class MainActivity : AppCompatActivity(), ClickedRecipeListener {
@@ -30,12 +33,10 @@ class MainActivity : AppCompatActivity(), ClickedRecipeListener {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        dialog = ProgressDialog(this).apply {
-            setTitle("Loading")
-        }
+        dialog = ProgressDialog(this)
 
         // Initialize Spinner and ArrayAdapter
-        spinner = findViewById(R.id.spinner) // Ensure this ID is correct
+        spinner = findViewById(R.id.spinner)
         val arrayAdapter: ArrayAdapter<CharSequence> = ArrayAdapter.createFromResource(
             this,
             R.array.tags,
@@ -48,7 +49,10 @@ class MainActivity : AppCompatActivity(), ClickedRecipeListener {
                 tags.clear()
                 val selectedTag = parent?.getItemAtPosition(position).toString()
                 tags.add(selectedTag)
+
+                // Correct parameter order
                 manager.getRandomRecipes(randomRecipeResponseListener, tags)
+                dialog.setMessage("Fetching recipes...")
                 dialog.show()
             }
 
@@ -70,52 +74,57 @@ class MainActivity : AppCompatActivity(), ClickedRecipeListener {
         recyclerPopular.setHasFixedSize(true)
         recyclerPopular.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
 
-        // Fetch recipes and show dialog
-        manager.getRandomRecipes(randomRecipeResponseListener, tags)
-        dialog.show()
         searchView = findViewById(R.id.searchView_home)
         searchView.setOnClickListener {
             searchView.isIconified = false
         }
 
+        // Fetch random recipes immediately when the app starts
+        manager.getRandomRecipes(randomRecipeResponseListener, tags)
+        dialog.setMessage("Fetching random recipes...")
+        dialog.show()
+
         searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(query: String?): Boolean {
                 query?.let {
-                    tags.clear()
-                    tags.add(it) // Add query as tag
-                    manager.getRandomRecipes(randomRecipeResponseListener, tags) // Fetch recipes with query as tag
-                    dialog.show() // Show loading dialog
+                    // Use the query for titleMatch instead of tags
+                    val titleMatch = it
+                    val excludeIngredients = listOf<String>()
+                    val includeIngredients = listOf<String>()  // Leave empty as we're focusing on titleMatch
+                    val numberOfRecipes = 50
+
+                    // Call getComplexSearch with titleMatch instead of tags
+                    manager.getComplexSearch(complexSearchListener, excludeIngredients, includeIngredients, numberOfRecipes, titleMatch)
+                    dialog.setMessage("Fetching recipes...")
+                    dialog.show()
                 }
-                return true // Return true to signal that query submission was handled
+                return true
             }
 
             override fun onQueryTextChange(newText: String?): Boolean {
-                return true // Handle text change if needed
+                return true
             }
         })
     }
 
     override fun onRecipeClicked(id: String) {
         Toast.makeText(this, id, Toast.LENGTH_SHORT).show()
-        // Start the RecipeDetailsActivity and pass the recipe ID
         val intent = Intent(this, RecipeDetails::class.java).apply {
             putExtra("id", id)
         }
         startActivity(intent)
     }
 
-    val randomRecipeResponseListener: RandomRecipeResponseListener = object : RandomRecipeResponseListener {
-        override fun didFetch(response: RandomRecipeApiResponse, message: String) {
+    // ComplexSearchListener to handle API response
+    private val complexSearchListener = object : ComplexSearchListener {
+        override fun didFetch(response: ComplexSearchApiResponse, message: String) {
             dialog.dismiss()
-            response.recipes?.let {
-                // Split data into two lists
-                val recommendedRecipes = it.take(50)  // First 50 recipes
-                val popularRecipes = it.drop(50)      // Remaining recipes
+            response.results?.let {
+                val recommendedRecipes = it.take(25)
+                val popularRecipes = it.drop(25)
 
-                // Set adapters with the split data
-                recyclerRecommended.adapter = RandomRecipeAdapter(this@MainActivity, recommendedRecipes, tags, this@MainActivity)
-                recyclerPopular.adapter = RandomRecipeAdapter(this@MainActivity, popularRecipes, tags, this@MainActivity)
-
+                recyclerRecommended.adapter = ComplexSearchAdapter(this@MainActivity, recommendedRecipes, this@MainActivity)
+                recyclerPopular.adapter = ComplexSearchAdapter(this@MainActivity, popularRecipes, this@MainActivity)
             }
         }
 
@@ -125,12 +134,31 @@ class MainActivity : AppCompatActivity(), ClickedRecipeListener {
         }
     }
 
-    private val spinnerSelectedListener = object : AdapterView.OnItemSelectedListener {
-        override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-            manager.getRandomRecipes(randomRecipeResponseListener, tags)
+    // RandomRecipeResponseListener to handle random recipe fetching
+    private val randomRecipeResponseListener = object : RandomRecipeResponseListener {
+        override fun didFetch(response: RandomRecipeApiResponse, message: String) {
+            dialog.dismiss()
+            response.recipes?.let {
+                val recommendedRecipes = it.take(25)
+                val popularRecipes = it.drop(25)
+                recyclerRecommended.adapter = RandomRecipeAdapter(
+                    this@MainActivity,
+                    recommendedRecipes,
+                    tags,
+                    this@MainActivity
+                )
+                recyclerPopular.adapter = RandomRecipeAdapter(
+                    this@MainActivity,
+                    popularRecipes,
+                    tags,
+                    this@MainActivity
+                )
+            }
         }
 
-        override fun onNothingSelected(parent: AdapterView<*>?) {
+        override fun didError(message: String) {
+            dialog.dismiss()
+            Toast.makeText(this@MainActivity, message, Toast.LENGTH_SHORT).show()
         }
     }
 }
