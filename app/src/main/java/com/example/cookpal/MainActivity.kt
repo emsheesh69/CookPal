@@ -51,6 +51,8 @@ class MainActivity : AppCompatActivity(), ClickedRecipeListener {
                 val selectedTag = parent?.getItemAtPosition(position).toString()
                 tags.add(selectedTag)
                 manager.getRandomRecipes(randomRecipeResponseListener, tags)
+             /*   dialog.setMessage("Fetching recipes...")
+                dialog.show()*/
             }
 
             override fun onNothingSelected(parent: AdapterView<*>?) {}
@@ -68,7 +70,13 @@ class MainActivity : AppCompatActivity(), ClickedRecipeListener {
         recyclerPopular.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
 
         searchView = findViewById(R.id.searchView_home)
-        searchView.setOnClickListener { searchView.isIconified = false }
+        searchView.setOnClickListener {
+            searchView.isIconified = false
+        }
+
+        manager.getRandomRecipes(randomRecipeResponseListener, tags)
+       /* dialog.setMessage("Fetching random recipes...")
+        dialog.show()*/
 
         searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(query: String?): Boolean {
