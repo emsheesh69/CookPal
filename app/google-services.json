@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "199967096687",
+    "firebase_url": "https://cookpal-a3631-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "cookpal-a3631",
+    "storage_bucket": "cookpal-a3631.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:199967096687:android:a690f16a7ed9093509f29a",
+        "android_client_info": {
+          "package_name": "com.example.cookpal"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC_769jZCHuOjTWBbDbxEq55HPKIOi8N6s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
