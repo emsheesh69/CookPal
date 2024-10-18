@@ -35,8 +35,6 @@ class MainActivity : AppCompatActivity(), ClickedRecipeListener {
 
         dialog = ProgressDialog(this)
 
-
-
         // Initialize Spinner and ArrayAdapter
         spinner = findViewById(R.id.spinner)
         val arrayAdapter: ArrayAdapter<CharSequence> = ArrayAdapter.createFromResource(
