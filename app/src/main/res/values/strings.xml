@@ -1,6 +1,10 @@
 <resources>
     <string name="app_name">CookPal</string>
+<<<<<<< Updated upstream
     <string name="api_key">ed8f2469d36747bab549f6ade1686789</string>
+=======
+    <string name="api_key">542d2a8119ed4dc5bc6ee0849be8787b</string>
+>>>>>>> Stashed changes
 
     <string-array name="tags">
         <item>Main course</item>
