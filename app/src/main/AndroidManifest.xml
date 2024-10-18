@@ -15,10 +15,19 @@
         android:theme="@style/Theme.CookPal"
         tools:targetApi="31">
         <activity
-            android:name=".RecipeDetails"
+            android:name=".VerifyReg"
             android:exported="false" />
         <activity
-            android:name=".MainActivity"
+            android:name=".ChangePassword"
+            android:exported="false" />
+        <activity
+            android:name=".Login"
+            android:exported="false" />
+        <activity
+            android:name=".Registration"
+            android:exported="false" />
+        <activity
+            android:name=".SplashScreen"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -26,6 +35,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".RecipeDetails"
+            android:exported="false" />
+        <activity
+            android:name=".MainActivity"
+            android:exported="true" />
         <activity android:name=".FilterActivity" />
     </application>
 

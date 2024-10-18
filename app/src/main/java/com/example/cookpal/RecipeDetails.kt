@@ -35,8 +35,13 @@ class RecipeDetails : AppCompatActivity() {
         recyclerMealIngredients = findViewById(R.id.meal_ingredients)
         id = intent.getStringExtra("id")?.toIntOrNull() ?: 0
 
+<<<<<<< Updated upstream
         // Initialize RequestManager before calling fetchRecipeDetails
         manager = RequestManager(this)
+=======
+        // Call the API with the captured id
+        //fetchRecipeDetails(id)
+>>>>>>> Stashed changes
 
         dialog = ProgressDialog(this).apply {
             setMessage("Loading details...")
