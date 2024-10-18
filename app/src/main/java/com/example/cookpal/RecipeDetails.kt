@@ -2,10 +2,12 @@ package com.example.cookpal
 
 import android.app.ProgressDialog
 import android.os.Bundle
+import android.text.Html
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.Toolbar
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.cookpal.Adapters.IngredientsAdapter
@@ -23,6 +25,7 @@ class RecipeDetails : AppCompatActivity() {
     private lateinit var recyclerMealIngredients: RecyclerView
     private lateinit var manager: RequestManager
     private lateinit var dialog: ProgressDialog
+    private lateinit var textViewMealInstructions : TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -33,9 +36,18 @@ class RecipeDetails : AppCompatActivity() {
         textViewMealSummary = findViewById(R.id.meal_summary)
         imageViewMealImage = findViewById(R.id.meal_image)
         recyclerMealIngredients = findViewById(R.id.meal_ingredients)
+        textViewMealInstructions = findViewById(R.id.meal_instructions)
         id = intent.getStringExtra("id")?.toIntOrNull() ?: 0
 
-        // Initialize RequestManager before calling fetchRecipeDetails
+        val toolbar = findViewById<Toolbar>(R.id.toolbar)
+        setSupportActionBar(toolbar)
+
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+
+        toolbar.setNavigationOnClickListener {
+            finish()
+        }
+
         manager = RequestManager(this)
 
         dialog = ProgressDialog(this).apply {
@@ -43,7 +55,7 @@ class RecipeDetails : AppCompatActivity() {
             show()
         }
 
-        fetchRecipeDetails(id)  // Call fetch after initializing manager
+        fetchRecipeDetails(id)
     }
 
     private fun fetchRecipeDetails(recipeId: Int) {
@@ -56,11 +68,24 @@ class RecipeDetails : AppCompatActivity() {
 
             textViewMealName.text = response.title
             textViewMealSource.text = response.sourceName
-            textViewMealSummary.text = response.summary
+
+            val fullSummary = response.summary
+            val summarySentences = fullSummary.split(". ").take(2).joinToString(". ") + "."
+            textViewMealSummary.text = Html.fromHtml(summarySentences, Html.FROM_HTML_MODE_LEGACY)
 
             Picasso.get()
                 .load(response.image)
                 .into(imageViewMealImage)
+
+            if (!response.analyzedInstructions.isNullOrEmpty()) {
+                val steps = response.analyzedInstructions[0].steps
+                val instructions = steps.joinToString("\n") {
+                    "${it.number}. ${it.step}"
+                }
+                textViewMealInstructions.text = instructions
+            } else {
+                textViewMealInstructions.text = "Instructions not available"
+            }
 
             recyclerMealIngredients.setHasFixedSize(true)
             recyclerMealIngredients.layoutManager =
@@ -72,7 +97,6 @@ class RecipeDetails : AppCompatActivity() {
         }
 
         override fun didError(message: String) {
-            // Implement your error handling logic here
             dialog.dismiss()
             Toast.makeText(this@RecipeDetails, message, Toast.LENGTH_SHORT).show()
         }

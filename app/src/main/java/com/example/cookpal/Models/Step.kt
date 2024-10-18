@@ -1,6 +1,5 @@
 package com.example.cookpal.Models
 
-
 class Step {
     var number: Int = 0
     var step: String? = null

@@ -35,7 +35,6 @@ class MainActivity : AppCompatActivity(), ClickedRecipeListener {
 
         dialog = ProgressDialog(this)
 
-        // Initialize Spinner and ArrayAdapter
         spinner = findViewById(R.id.spinner)
         val arrayAdapter: ArrayAdapter<CharSequence> = ArrayAdapter.createFromResource(
             this,
@@ -57,13 +56,11 @@ class MainActivity : AppCompatActivity(), ClickedRecipeListener {
             }
 
             override fun onNothingSelected(parent: AdapterView<*>?) {
-                // Handle the case when no item is selected
             }
         }
 
         arrayAdapter.setDropDownViewResource(R.layout.spinner_inner_text)
 
-        // Initialize RequestManager and RecyclerViews
         manager = RequestManager(this)
 
         recyclerRecommended = findViewById(R.id.recycler_recommended)
@@ -79,7 +76,6 @@ class MainActivity : AppCompatActivity(), ClickedRecipeListener {
             searchView.isIconified = false
         }
 
-        // Fetch random recipes immediately when the app starts
         manager.getRandomRecipes(randomRecipeResponseListener, tags)
         dialog.setMessage("Fetching random recipes...")
         dialog.show()
@@ -87,13 +83,11 @@ class MainActivity : AppCompatActivity(), ClickedRecipeListener {
         searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(query: String?): Boolean {
                 query?.let {
-                    // Use the query for titleMatch instead of tags
                     val titleMatch = it
                     val excludeIngredients = listOf<String>()
-                    val includeIngredients = listOf<String>()  // Leave empty as we're focusing on titleMatch
+                    val includeIngredients = listOf<String>()
                     val numberOfRecipes = 50
 
-                    // Call getComplexSearch with titleMatch instead of tags
                     manager.getComplexSearch(complexSearchListener, excludeIngredients, includeIngredients, numberOfRecipes, titleMatch)
                     dialog.setMessage("Fetching recipes...")
                     dialog.show()
@@ -115,7 +109,6 @@ class MainActivity : AppCompatActivity(), ClickedRecipeListener {
         startActivity(intent)
     }
 
-    // ComplexSearchListener to handle API response
     private val complexSearchListener = object : ComplexSearchListener {
         override fun didFetch(response: ComplexSearchApiResponse, message: String) {
             dialog.dismiss()
@@ -134,7 +127,6 @@ class MainActivity : AppCompatActivity(), ClickedRecipeListener {
         }
     }
 
-    // RandomRecipeResponseListener to handle random recipe fetching
     private val randomRecipeResponseListener = object : RandomRecipeResponseListener {
         override fun didFetch(response: RandomRecipeApiResponse, message: String) {
             dialog.dismiss()
