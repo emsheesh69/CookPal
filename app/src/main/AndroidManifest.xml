@@ -41,6 +41,13 @@
         <activity
             android:name=".MainActivity"
             android:exported="true" />
+        <activity
+            android:name=".MyIngredientsActivity"
+            android:exported="true" />
+        <activity
+        android:name=".VoiceCommandActivity"
+        android:exported="true" />
+
         <activity android:name=".FilterActivity" />
     </application>
 

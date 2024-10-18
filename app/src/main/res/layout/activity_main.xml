@@ -8,7 +8,6 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <!-- Container for Filter Button and Search Bar -->
     <LinearLayout
         android:id="@+id/search_container"
         android:layout_width="match_parent"
@@ -16,7 +15,6 @@
         android:layout_margin="16dp"
         android:orientation="horizontal">
 
-        <!-- Filter Button -->
         <Spinner
             android:id="@+id/spinner"
             android:layout_width="48dp"
@@ -27,7 +25,6 @@
             android:contentDescription="Filter"
             android:layout_gravity="center_vertical" />
 
-        <!-- Search Bar -->
         <androidx.appcompat.widget.SearchView
             android:id="@+id/search_bar"
             android:layout_width="0dp"
@@ -58,7 +55,6 @@
 
         </SearchView>
     </androidx.cardview.widget.CardView>
-    <!-- Recommended Recipes RecyclerView -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recycler_recommended"
         android:layout_width="match_parent"
@@ -67,7 +63,6 @@
         android:layout_marginTop="8dp"
         android:scrollbars="horizontal" />
 
-    <!-- Popular Recipes RecyclerView -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recycler_popular"
         android:layout_width="match_parent"
@@ -75,7 +70,6 @@
         android:layout_below="@id/recycler_recommended"
         android:layout_marginTop="16dp"
         android:scrollbars="horizontal" />
-
 
     <LinearLayout
         android:id="@+id/footer_navbar"
@@ -89,17 +83,21 @@
         android:padding="8dp">
 
         <LinearLayout
+            android:id="@+id/nav_discover"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:gravity="center"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:clickable="true"
+            android:background="?attr/selectableItemBackground">
 
             <ImageView
                 android:id="@+id/icon1"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:src="@drawable/ic_search" />
+                android:src="@drawable/ic_search"
+                android:tint="@color/highlight_color" />
 
             <TextView
                 android:id="@+id/text1"
@@ -107,22 +105,26 @@
                 android:layout_height="wrap_content"
                 android:gravity="center"
                 android:text="Discover Recipe"
-                android:textColor="@color/white"
-                android:textSize="10sp" />
+                android:textColor="@color/highlight_color"
+            android:textSize="10sp" />
         </LinearLayout>
 
         <LinearLayout
+            android:id="@+id/nav_ingredients"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:gravity="center"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:clickable="true"
+            android:background="?attr/selectableItemBackground">
 
             <ImageView
                 android:id="@+id/icon2"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:src="@drawable/ic_ingred" />
+                android:src="@drawable/ic_ingred"
+                app:tint="@color/white" />
 
             <TextView
                 android:id="@+id/text2"
@@ -135,17 +137,21 @@
         </LinearLayout>
 
         <LinearLayout
+            android:id="@+id/nav_voice_command"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:gravity="center"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:clickable="true"
+            android:background="?attr/selectableItemBackground">
 
             <ImageView
                 android:id="@+id/icon3"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:src="@drawable/ic_vc" />
+                android:src="@drawable/ic_vc"
+                app:tint="@color/white" />
 
             <TextView
                 android:id="@+id/text3"
@@ -158,17 +164,21 @@
         </LinearLayout>
 
         <LinearLayout
+            android:id="@+id/nav_settings"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:gravity="center"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:clickable="true"
+            android:background="?attr/selectableItemBackground">
 
             <ImageView
                 android:id="@+id/icon4"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:src="@drawable/ic_settings" />
+                android:src="@drawable/ic_settings"
+                app:tint="@color/white" />
 
             <TextView
                 android:id="@+id/text4"
@@ -179,6 +189,8 @@
                 android:textColor="@color/white"
                 android:textSize="10sp" />
         </LinearLayout>
+
     </LinearLayout>
+
 
 </RelativeLayout>

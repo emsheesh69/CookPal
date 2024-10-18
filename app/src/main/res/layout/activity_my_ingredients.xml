@@ -1,97 +1,43 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:background="@drawable/bg_cookpal">
+    android:background="@drawable/bg_cookpal"
+    android:orientation="vertical">
 
-    <!-- Toolbar at the top -->
-    <androidx.appcompat.widget.Toolbar
-        android:id="@+id/toolbar"
-        android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
-        android:background="@android:color/transparent"
-        android:title="Recipe Details"
-        android:titleTextColor="@android:color/white"
-        app:navigationIcon="@drawable/ic_back_button" />
-
-    <ScrollView
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_below="@id/toolbar"
-        android:layout_above="@+id/footer_navbar">
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
 
-        <LinearLayout
-            android:layout_width="match_parent"
+        <EditText
+            android:id="@+id/editTextIngredient"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:gravity="center">
+            android:layout_weight="1"
+            android:hint="Enter Ingredient"
+            android:padding="8dp"
+            android:background="@drawable/edit_text_background"
+            android:textColor="@android:color/black"
+            android:textSize="16sp"/>
 
-            <TextView
-                android:id="@+id/meal_name"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Recipe Name"
-                android:textSize="20sp"
-                android:gravity="center"
-                android:textColor="@android:color/white"
-                android:padding="8dp"
-                android:textStyle="bold" />
+        <Button
+            android:id="@+id/buttonAddIngredient"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Add"
+            android:layout_marginStart="8dp"/>
+    </LinearLayout>
 
-            <TextView
-                android:id="@+id/meal_source"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Source"
-                android:textSize="14sp"
-                android:gravity="center"
-                android:textColor="@android:color/white"
-                android:padding="8dp"
-                android:textStyle="italic" />
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerIngredients"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
 
-            <TextView
-                android:id="@+id/meal_summary"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Summary"
-                android:textSize="14sp"
-                android:textColor="@android:color/white"
-                android:padding="8dp"
-                android:layout_margin="8dp" />
-
-            <ImageView
-                android:id="@+id/meal_image"
-                android:layout_width="match_parent"
-                android:layout_height="250dp"
-                android:scaleType="centerCrop"
-                android:layout_margin="8dp" />
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Ingredients"
-                android:textSize="18sp"
-                android:textColor="@android:color/white"
-                android:textStyle="bold"
-                android:padding="8dp"
-                android:gravity="center" />
-
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/meal_ingredients"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_margin="8dp" />
-
-            <TextView
-                android:id="@+id/meal_instructions"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Instructions will appear here"
-                android:textColor="@android:color/white" />
-        </LinearLayout>
-    </ScrollView>
-
-    <!-- Custom Bottom Navigation Bar with Transparent Background -->
     <LinearLayout
         android:id="@+id/footer_navbar"
         android:layout_width="match_parent"
@@ -145,7 +91,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:src="@drawable/ic_ingred"
-                app:tint="@color/white" />
+                app:tint="@color/highlight_color" />
 
             <TextView
                 android:id="@+id/text2"
@@ -153,7 +99,7 @@
                 android:layout_height="wrap_content"
                 android:gravity="center"
                 android:text="My Ingredient"
-                android:textColor="@color/white"
+                android:textColor="@color/highlight_color"
                 android:textSize="10sp" />
         </LinearLayout>
 
@@ -210,6 +156,6 @@
                 android:textColor="@color/white"
                 android:textSize="10sp" />
         </LinearLayout>
-    </LinearLayout>
 
-</RelativeLayout>
+    </LinearLayout>
+</LinearLayout>
