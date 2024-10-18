@@ -1,107 +1,82 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
+    android:layout_width="wrap_content"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:background="@drawable/bg_cookpal">
+    android:background="@drawable/bg_cookpal"
+    android:layout_height="wrap_content">
 
-    <!-- Toolbar at the top -->
-    <androidx.appcompat.widget.Toolbar
-        android:id="@+id/toolbar"
-        android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
-        android:background="@android:color/transparent"
-        android:title="Recipe Details"
-        android:titleTextColor="@android:color/white"
-        app:navigationIcon="@drawable/ic_back_button" />
+    <TextView
+        android:id="@+id/header_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="VOICE COMMANDS"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="16dp" />
 
-    <ScrollView
+    <TableLayout
+        android:id="@+id/table_commands"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_below="@id/toolbar"
-        android:layout_above="@+id/footer_navbar">
+        android:layout_below="@id/header_title"
+        android:layout_centerHorizontal="true"
+        android:layout_centerVertical="true"
+        android:stretchColumns="0"
+        android:layout_marginBottom="16dp">
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:gravity="center">
-
+        <TableRow>
             <TextView
-                android:id="@+id/meal_name"
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:text="Recipe Name"
-                android:textSize="20sp"
-                android:gravity="center"
-                android:textColor="@android:color/white"
-                android:padding="8dp"
+                android:layout_weight="1"
+                android:text="Action"
                 android:textStyle="bold" />
 
             <TextView
-                android:id="@+id/meal_source"
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:text="Source"
-                android:textSize="14sp"
-                android:gravity="center"
-                android:textColor="@android:color/white"
-                android:padding="8dp"
-                android:textStyle="italic" />
+                android:layout_weight="2"
+                android:text="Description"
+                android:textStyle="bold" />
+        </TableRow>
+
+        <TableRow>
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Open Recipe" />
 
             <TextView
-                android:id="@+id/meal_summary"
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:text="Summary"
-                android:textSize="14sp"
-                android:textColor="@android:color/white"
-                android:padding="8dp"
-                android:layout_margin="8dp" />
+                android:layout_weight="2"
+                android:text="Opens the selected recipe." />
+        </TableRow>
 
-            <ImageView
-                android:id="@+id/meal_image"
-                android:layout_width="match_parent"
-                android:layout_height="250dp"
-                android:scaleType="centerCrop"
-                android:layout_margin="8dp" />
+        <TableRow>
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Add Ingredient" />
 
             <TextView
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:text="Ingredients"
-                android:textSize="18sp"
-                android:textColor="@android:color/white"
-                android:textStyle="bold"
-                android:padding="8dp"
-                android:gravity="center" />
-
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/meal_ingredients"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_margin="8dp" />
-
-            <TextView
-                android:id="@+id/meal_instructions"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Instructions will appear here"
-                android:textColor="@android:color/white" />
-        </LinearLayout>
-    </ScrollView>
-
-    <!-- Custom Bottom Navigation Bar with Transparent Background -->
+                android:layout_weight="2"
+                android:text="Adds an ingredient to your list." />
+        </TableRow>
+    </TableLayout>
     <LinearLayout
         android:id="@+id/footer_navbar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
         android:background="#5D4C4C"
-        android:backgroundTint="#422020"
         android:gravity="center"
-        android:orientation="horizontal"
-        android:padding="8dp">
+        android:orientation="horizontal">
 
         <LinearLayout
             android:id="@+id/nav_discover"
@@ -111,14 +86,15 @@
             android:gravity="center"
             android:orientation="vertical"
             android:clickable="true"
-            android:background="?attr/selectableItemBackground">
+            android:background="?attr/selectableItemBackground"
+            android:padding="16dp"> <!-- Padding here can remain for touch target -->
 
             <ImageView
                 android:id="@+id/icon1"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:src="@drawable/ic_search"
-                android:tint="@color/white" />
+                app:tint="@color/white"
+                android:src="@drawable/ic_search" />
 
             <TextView
                 android:id="@+id/text1"
@@ -138,14 +114,15 @@
             android:gravity="center"
             android:orientation="vertical"
             android:clickable="true"
-            android:background="?attr/selectableItemBackground">
+            android:background="?attr/selectableItemBackground"
+            android:padding="16dp">
 
             <ImageView
                 android:id="@+id/icon2"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:src="@drawable/ic_ingred"
-                app:tint="@color/white" />
+                app:tint="@color/white"
+                android:src="@drawable/ic_ingred" />
 
             <TextView
                 android:id="@+id/text2"
@@ -165,14 +142,15 @@
             android:gravity="center"
             android:orientation="vertical"
             android:clickable="true"
-            android:background="?attr/selectableItemBackground">
+            android:background="?attr/selectableItemBackground"
+            android:padding="16dp">
 
             <ImageView
                 android:id="@+id/icon3"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:src="@drawable/ic_vc"
-                app:tint="@color/white" />
+                android:tint="@color/highlight_color"
+                android:src="@drawable/ic_vc" />
 
             <TextView
                 android:id="@+id/text3"
@@ -180,7 +158,7 @@
                 android:layout_height="wrap_content"
                 android:gravity="center"
                 android:text="Voice Command"
-                android:textColor="@color/white"
+                android:textColor="@color/highlight_color"
                 android:textSize="10sp" />
         </LinearLayout>
 
@@ -192,14 +170,15 @@
             android:gravity="center"
             android:orientation="vertical"
             android:clickable="true"
-            android:background="?attr/selectableItemBackground">
+            android:background="?attr/selectableItemBackground"
+            android:padding="16dp">
 
             <ImageView
                 android:id="@+id/icon4"
+                app:tint="@color/white"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:src="@drawable/ic_settings"
-                app:tint="@color/white" />
+                android:src="@drawable/ic_settings" />
 
             <TextView
                 android:id="@+id/text4"
@@ -210,6 +189,7 @@
                 android:textColor="@color/white"
                 android:textSize="10sp" />
         </LinearLayout>
+
     </LinearLayout>
 
 </RelativeLayout>

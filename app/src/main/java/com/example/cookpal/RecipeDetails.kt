@@ -1,9 +1,11 @@
 package com.example.cookpal
 
 import android.app.ProgressDialog
+import android.content.Intent
 import android.os.Bundle
 import android.text.Html
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -25,7 +27,7 @@ class RecipeDetails : AppCompatActivity() {
     private lateinit var recyclerMealIngredients: RecyclerView
     private lateinit var manager: RequestManager
     private lateinit var dialog: ProgressDialog
-    private lateinit var textViewMealInstructions : TextView
+    private lateinit var textViewMealInstructions: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -56,6 +58,8 @@ class RecipeDetails : AppCompatActivity() {
         }
 
         fetchRecipeDetails(id)
+
+        setupNavigationBar()
     }
 
     private fun fetchRecipeDetails(recipeId: Int) {
@@ -99,6 +103,28 @@ class RecipeDetails : AppCompatActivity() {
         override fun didError(message: String) {
             dialog.dismiss()
             Toast.makeText(this@RecipeDetails, message, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun setupNavigationBar() {
+        findViewById<LinearLayout>(R.id.nav_discover).setOnClickListener {
+            // Intent to Discover Recipe
+             startActivity(Intent(this, MainActivity::class.java))
+        }
+
+        findViewById<LinearLayout>(R.id.nav_ingredients).setOnClickListener {
+            // Intent to My Ingredients
+             startActivity(Intent(this, MyIngredientsActivity::class.java))
+        }
+
+        findViewById<LinearLayout>(R.id.nav_voice_command).setOnClickListener {
+            // Intent to Voice Command
+            // startActivity(Intent(this, VoiceCommandActivity::class.java))
+        }
+
+        findViewById<LinearLayout>(R.id.nav_settings).setOnClickListener {
+            // Intent to Settings
+            // startActivity(Intent(this, SettingsActivity::class.java))
         }
     }
 }

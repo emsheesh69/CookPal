@@ -38,7 +38,7 @@
             android:layout_below="@id/appTitleImageView"
             android:layout_centerHorizontal="true"
             android:layout_marginTop="8dp"
-            android:text="Lorem ipsum dolor sit amet consectetur. Sed tristique volutpat."
+            android:text="Cook well with CookPal."
             android:textColor="@android:color/white"
             android:textSize="14sp" />
     </RelativeLayout>
