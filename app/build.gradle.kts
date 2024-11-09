@@ -20,13 +20,19 @@ android {
     }
 
     buildTypes {
-        release {
+        getByName("release") {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
         }
+    }
+    packagingOptions {
+        exclude("META-INF/DEPENDENCIES") // Exclude the conflicting file
+        exclude("META-INF/LICENSE")     // Exclude other potential duplicate files
+        exclude("META-INF/LICENSE.txt")
+        exclude("META-INF/NOTICE")
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
@@ -49,6 +55,7 @@ dependencies {
     implementation(libs.firebase.auth)
     implementation(libs.firebase.auth.ktx)
     implementation(libs.androidx.recyclerview)
+    implementation(libs.androidx.espresso.core)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     implementation ("com.google.android.material:material:1.9.0")
@@ -59,6 +66,12 @@ dependencies {
     implementation ("com.google.firebase:firebase-database:20.3.0")
     implementation ("com.google.firebase:firebase-auth:22.0.0")
     implementation ("com.google.android.gms:play-services-auth:20.1.0")
+    implementation ("com.squareup.okhttp3:okhttp:4.10.0")
+    implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0")
+    implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.0")
+    implementation ("com.sendgrid:sendgrid-java:4.9.3") {
+        exclude(group = "org.apache.httpcomponents", module = "httpclient")
+    }
 
 
 

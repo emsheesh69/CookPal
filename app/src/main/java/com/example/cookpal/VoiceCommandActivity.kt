@@ -28,11 +28,11 @@ class VoiceCommandActivity : AppCompatActivity() {
 
     private fun populateVoiceCommands() {
         val commands = listOf(
-            VoiceCommand("Open Recipe", "Opens the selected recipe."),
-            VoiceCommand("Add Ingredient", "Adds an ingredient to your list."),
-            VoiceCommand("Show Ingredients", "Displays your saved ingredients."),
-            VoiceCommand("Start Cooking", "Gets instructions for cooking a recipe."),
-            VoiceCommand("Stop Cooking", "Ends the cooking session.")
+            VoiceCommand("Next step", "Proceeds to the next step."),
+            VoiceCommand("Previous step", "Goes to previous step."),
+            VoiceCommand("Repeat step", "Repeat the current step."),
+            VoiceCommand("Start timer", "Starts the timer."),
+            VoiceCommand("Stop timer", "Stops the timer.")
         )
 
         for (command in commands) {

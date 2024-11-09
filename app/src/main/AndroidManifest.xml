@@ -9,6 +9,7 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.RECEIVE_SMS" />
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -19,6 +20,12 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.CookPal"
         tools:targetApi="31">
+        <activity
+            android:name=".VerifyPass"
+            android:exported="false" />
+        <activity
+            android:name=".GetMobileNum"
+            android:exported="false" />
         <activity
             android:name=".VerifyReg"
             android:exported="false" />
@@ -50,9 +57,8 @@
             android:name=".MyIngredientsActivity"
             android:exported="true" />
         <activity
-        android:name=".VoiceCommandActivity"
-        android:exported="true" />
-
+            android:name=".VoiceCommandActivity"
+            android:exported="true" />
         <activity android:name=".FilterActivity" />
     </application>
 

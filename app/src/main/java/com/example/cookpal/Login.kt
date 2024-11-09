@@ -21,7 +21,7 @@ class Login : AppCompatActivity() {
         auth=FirebaseAuth.getInstance()
         val forgotPassbtn = findViewById(R.id.forgotPassword) as TextView
         forgotPassbtn.setOnClickListener{
-            var intent = Intent(this, ChangePassword::class.java)
+            var intent = Intent(this, GetMobileNum::class.java)
             startActivity(intent)
         }
 
