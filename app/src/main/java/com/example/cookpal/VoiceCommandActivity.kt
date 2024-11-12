@@ -2,6 +2,7 @@ package com.example.cookpal
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.Gravity
 import android.widget.LinearLayout
 import android.widget.TableLayout
 import android.widget.TableRow
@@ -35,17 +36,28 @@ class VoiceCommandActivity : AppCompatActivity() {
             VoiceCommand("Stop timer", "Stops the timer.")
         )
 
-        for (command in commands) {
+        for ((index, command) in commands.withIndex()) {
             val row = TableRow(this)
+
+            row.setBackgroundColor(resources.getColor(R.color.black_tint))
 
             val actionTextView = TextView(this).apply {
                 layoutParams = TableRow.LayoutParams(0, TableRow.LayoutParams.WRAP_CONTENT, 1f)
                 text = command.action
+                textSize = 18f
+                setTextColor(resources.getColor(R.color.white))
+                setPadding(16, 16, 16, 16)
+                gravity = Gravity.START
             }
 
             val descriptionTextView = TextView(this).apply {
                 layoutParams = TableRow.LayoutParams(0, TableRow.LayoutParams.WRAP_CONTENT, 2f)
                 text = command.description
+                textSize = 16f
+                setTextColor(resources.getColor(R.color.black))
+                setPadding(16, 16, 16, 16)
+                gravity = Gravity.START
+                setBackgroundColor(resources.getColor(R.color.white))
             }
 
             row.addView(actionTextView)
@@ -67,7 +79,6 @@ class VoiceCommandActivity : AppCompatActivity() {
         }
 
         findViewById<LinearLayout>(R.id.nav_voice_command).setOnClickListener {
-            // Already in Voice Command Activity
         }
 
         findViewById<LinearLayout>(R.id.nav_settings).setOnClickListener {

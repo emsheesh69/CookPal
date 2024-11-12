@@ -17,6 +17,8 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.cookpal.MainActivity
 import com.example.cookpal.R
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 
 class MyIngredientsActivity : AppCompatActivity() {
 
@@ -34,15 +36,28 @@ class MyIngredientsActivity : AppCompatActivity() {
     private lateinit var sharedPreferences: SharedPreferences
     private val prefsFileName = "MyIngredientsPrefs"
     private val ingredientsKey = "ingredientsList"
+    private val firestore = FirebaseFirestore.getInstance()
+    private val currentUser = FirebaseAuth.getInstance().currentUser
+    private val ingredientsCollection = "user_ingredients"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_my_ingredients)
 
-        // Initialize Shared Preferences
-        sharedPreferences = getSharedPreferences(prefsFileName, Context.MODE_PRIVATE)
-        loadIngredients() // Load ingredients from Shared Preferences
+        val auth = FirebaseAuth.getInstance()
+        if (auth.currentUser == null) {
+            val loginIntent = Intent(this, Login::class.java)
+            startActivity(loginIntent)
+            finish()
+            return
+        }
 
+        sharedPreferences = getSharedPreferences(prefsFileName, Context.MODE_PRIVATE)
+        initViews()
+        loadIngredients()
+    }
+
+    private fun initViews() {
         editTextIngredient = findViewById(R.id.editTextIngredient)
         buttonAddIngredient = findViewById(R.id.buttonAddIngredient)
         recyclerIngredients = findViewById(R.id.recyclerIngredients)
@@ -57,13 +72,12 @@ class MyIngredientsActivity : AppCompatActivity() {
                 ingredientsList.add(ingredient)
                 ingredientsAdapter.notifyDataSetChanged()
                 editTextIngredient.text.clear()
-                saveIngredients() // Save updated ingredients to Shared Preferences
+                saveIngredients()
             } else {
                 Toast.makeText(this, "Please enter an ingredient", Toast.LENGTH_SHORT).show()
             }
         }
 
-        // Initialize Navigation Bar Views
         navDiscover = findViewById(R.id.nav_discover)
         navIngredients = findViewById(R.id.nav_ingredients)
         navVoiceCommand = findViewById(R.id.nav_voice_command)
@@ -75,48 +89,66 @@ class MyIngredientsActivity : AppCompatActivity() {
         }
         navIngredients.setOnClickListener { setHighlightedTab(navIngredients) }
         navVoiceCommand.setOnClickListener {
-            // Intent for voice command activity can be added here
+            setHighlightedTab(navVoiceCommand)
+            startActivity(Intent(this, VoiceCommandActivity::class.java))
         }
         navSettings.setOnClickListener {
-            // Intent for settings activity can be added here
+            // Add intent for settings activity if needed
         }
 
-        // Highlight My Ingredients tab
         setHighlightedTab(navIngredients)
     }
 
     private fun loadIngredients() {
-        val savedIngredients = sharedPreferences.getStringSet(ingredientsKey, emptySet())
-        ingredientsList.clear()
-        savedIngredients?.let {
-            ingredientsList.addAll(it)
+        currentUser?.uid?.let { userId ->
+            firestore.collection(ingredientsCollection).document(userId)
+                .get()
+                .addOnSuccessListener { document ->
+                    if (document.exists()) {
+                        val savedIngredients = document.get("ingredientsList") as? List<String>
+                        ingredientsList.clear()
+                        savedIngredients?.let { ingredientsList.addAll(it) }
+                        ingredientsAdapter.notifyDataSetChanged()
+                    }
+                }
+                .addOnFailureListener { e ->
+                    Toast.makeText(this, "Failed to load ingredients: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
         }
     }
 
     private fun saveIngredients() {
-        val editor = sharedPreferences.edit()
-        editor.putStringSet(ingredientsKey, ingredientsList.toSet())
-        editor.apply()
+        currentUser?.uid?.let { userId ->
+            val ingredientsData = hashMapOf("ingredientsList" to ingredientsList)
+            firestore.collection(ingredientsCollection).document(userId)
+                .set(ingredientsData)
+                .addOnSuccessListener {
+                    Toast.makeText(this, "Ingredients saved successfully", Toast.LENGTH_SHORT).show()
+                }
+                .addOnFailureListener { e ->
+                    Toast.makeText(this, "Failed to save ingredients: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        loadIngredients()
     }
 
     private fun setHighlightedTab(selectedTab: LinearLayout) {
         resetAllTabs()
-
-        // Highlight the selected tab
         val icon = selectedTab.getChildAt(0) as ImageView
         val text = selectedTab.getChildAt(1) as TextView
-
         icon.setColorFilter(ContextCompat.getColor(this, R.color.highlight_color))
         text.setTextColor(ContextCompat.getColor(this, R.color.highlight_color))
     }
 
     private fun resetAllTabs() {
         val tabs = listOf(navDiscover, navIngredients, navVoiceCommand, navSettings)
-
         for (tab in tabs) {
             val icon = tab.getChildAt(0) as ImageView
             val text = tab.getChildAt(1) as TextView
-
             icon.setColorFilter(ContextCompat.getColor(this, R.color.white))
             text.setTextColor(ContextCompat.getColor(this, R.color.white))
         }
@@ -125,14 +157,26 @@ class MyIngredientsActivity : AppCompatActivity() {
     private fun editIngredient(position: Int) {
         val currentIngredient = ingredientsList[position]
         editTextIngredient.setText(currentIngredient)
+        buttonAddIngredient.text = "Update"
         buttonAddIngredient.setOnClickListener {
             val updatedIngredient = editTextIngredient.text.toString()
             if (updatedIngredient.isNotEmpty()) {
                 ingredientsList[position] = updatedIngredient
                 ingredientsAdapter.notifyItemChanged(position)
                 editTextIngredient.text.clear()
-                buttonAddIngredient.setText("Add")
-                saveIngredients() // Save updated ingredients
+                buttonAddIngredient.text = "Add"
+                buttonAddIngredient.setOnClickListener {
+                    val ingredient = editTextIngredient.text.toString()
+                    if (ingredient.isNotEmpty()) {
+                        ingredientsList.add(ingredient)
+                        ingredientsAdapter.notifyDataSetChanged()
+                        editTextIngredient.text.clear()
+                        saveIngredients()
+                    } else {
+                        Toast.makeText(this, "Please enter an ingredient", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                saveIngredients()
             } else {
                 Toast.makeText(this, "Please enter an ingredient", Toast.LENGTH_SHORT).show()
             }
@@ -142,6 +186,6 @@ class MyIngredientsActivity : AppCompatActivity() {
     private fun deleteIngredient(position: Int) {
         ingredientsList.removeAt(position)
         ingredientsAdapter.notifyItemRemoved(position)
-        saveIngredients() // Save updated ingredients after deletion
+        saveIngredients()
     }
 }

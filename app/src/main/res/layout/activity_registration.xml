@@ -1,209 +1,216 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:background="@drawable/background_gradient"
-    android:padding="10dp">
+    android:padding="16dp">
 
+    <!-- CookPal Title (ImageView) -->
+    <ImageView
+        android:id="@+id/appTitleImageView"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:contentDescription="CookPal Title"
+        android:src="@drawable/cookpal"
+        app:layout_constraintWidth_percent="0.5"
+        app:layout_constraintHeight_percent="0.15"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toTopOf="@+id/registrationTextView"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Registration Text -->
+    <TextView
+        android:id="@+id/registrationTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="REGISTRATION"
+        android:textColor="@android:color/white"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        app:layout_constraintTop_toBottomOf="@+id/appTitleImageView"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Email Address -->
+    <TextView
+        android:id="@+id/emailTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="EMAIL ADDRESS"
+        android:textColor="@android:color/black"
+        android:textStyle="bold"
+        app:layout_constraintTop_toBottomOf="@+id/registrationTextView"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <EditText
+        android:id="@+id/emailEditText"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/edit_text_background"
+        android:hint="juandelacruz@gmail.com"
+        android:inputType="textEmailAddress"
+        android:padding="12dp"
+        android:textColor="@android:color/black"
+        android:textColorHint="@android:color/darker_gray"
+        app:layout_constraintTop_toBottomOf="@+id/emailTextView"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Birthdate -->
+    <TextView
+        android:id="@+id/birthdateTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="BIRTHDATE"
+        android:textColor="@android:color/black"
+        android:textStyle="bold"
+        app:layout_constraintTop_toBottomOf="@+id/emailEditText"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <EditText
+        android:id="@+id/birthdateEditText"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/edit_text_background"
+        android:hint="MM-DD-YYYY"
+        android:inputType="date"
+        android:padding="12dp"
+        android:textColor="@android:color/black"
+        android:textColorHint="@android:color/darker_gray"
+        app:layout_constraintTop_toBottomOf="@+id/birthdateTextView"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Password -->
+    <TextView
+        android:id="@+id/passwordTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="PASSWORD"
+        android:textColor="@android:color/black"
+        android:textStyle="bold"
+        app:layout_constraintTop_toBottomOf="@+id/birthdateEditText"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <EditText
+        android:id="@+id/passwordEditText"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/edit_text_background"
+        android:hint="Enter your password"
+        android:inputType="textPassword"
+        android:padding="12dp"
+        android:textColor="@android:color/black"
+        android:textColorHint="@android:color/darker_gray"
+        app:layout_constraintTop_toBottomOf="@+id/passwordTextView"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Confirm Password -->
+    <TextView
+        android:id="@+id/confirmPasswordTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="CONFIRM PASSWORD"
+        android:textColor="@android:color/black"
+        android:textStyle="bold"
+        app:layout_constraintTop_toBottomOf="@+id/passwordEditText"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <EditText
+        android:id="@+id/confirmPasswordEditText"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/edit_text_background"
+        android:hint="Re-enter your password"
+        android:inputType="textPassword"
+        android:padding="12dp"
+        android:textColor="@android:color/black"
+        android:textColorHint="@android:color/darker_gray"
+        app:layout_constraintTop_toBottomOf="@+id/confirmPasswordTextView"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Terms and Conditions Checkbox and Link -->
     <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:gravity="center_horizontal"
-        android:orientation="vertical"
-        android:layout_marginTop="100dp"
-        >
+        android:id="@+id/termsLayout"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/confirmPasswordEditText">
 
-        <!-- CookPal Title (ImageView) -->
-        <ImageView
-            android:id="@+id/appTitleImageView"
-            android:layout_width="300dp"
-            android:layout_height="100dp"
-            android:layout_marginTop="20dp"
-            android:contentDescription="CookPal Title"
-            android:src="@drawable/cookpal" />
+        <CheckBox
+            android:id="@+id/termsCheckBox"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:buttonTint="@android:color/black" />
 
-        <!-- Registration Text -->
+        <TextView
+            android:id="@+id/termsTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Tap to read the"
+            android:textColor="@android:color/black" />
+
+        <TextView
+            android:id="@+id/termsAndConditionsTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=" Terms and Conditions"
+            android:textColor="@android:color/holo_red_light"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- Register Button -->
+    <Button
+        android:id="@+id/registerButton"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:background="@drawable/button_background"
+        android:padding="10dp"
+        android:text="REGISTER"
+        android:textColor="@android:color/white"
+        android:textStyle="bold"
+        android:textSize="18sp"
+        app:layout_constraintTop_toBottomOf="@+id/termsLayout"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Already have an account? Login -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:gravity="center"
+        android:orientation="horizontal"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/registerButton">
+
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="REGISTRATION"
-            android:textColor="@android:color/white"
-            android:textSize="24sp"
-            android:textStyle="bold" />
+            android:text="Already have an account?"
+            android:textColor="@android:color/black" />
 
-        <!-- Email Address -->
         <TextView
+            android:id="@+id/loginTextView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:layout_marginRight="155dp"
-            android:text="EMAIL ADDRESS"
-            android:textColor="@android:color/black"
+            android:text=" Login"
+            android:textColor="@android:color/holo_red_light"
             android:textStyle="bold" />
-
-        <EditText
-            android:id="@+id/emailEditText"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:background="@drawable/edit_text_background"
-            android:hint="juandelacruz@gmail.com"
-            android:inputType="textEmailAddress"
-            android:padding="12dp"
-            android:textColor="@android:color/black"
-            android:textColorHint="@android:color/darker_gray" />
-
-        <!-- Birthdate -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:layout_marginRight="170dp"
-            android:text="BIRTHDATE"
-            android:textColor="@android:color/black"
-            android:textStyle="bold" />
-
-        <EditText
-            android:id="@+id/birthdateEditText"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:background="@drawable/edit_text_background"
-            android:hint="MM-DD-YYYY"
-            android:inputType="date"
-            android:padding="12dp"
-            android:textColor="@android:color/black"
-            android:textColorHint="@android:color/darker_gray" />
-
-
-
-        <!-- Password -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:layout_marginRight="170dp"
-            android:text="PASSWORD"
-            android:textColor="@android:color/black"
-            android:textStyle="bold" />
-
-        <com.google.android.material.textfield.TextInputLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:passwordToggleEnabled="true"
-            >
-            <EditText
-                android:id="@+id/passwordEditText"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:background="@drawable/edit_text_background"
-                android:inputType="textPassword"
-                android:padding="12dp"
-                android:textColor="@android:color/black"
-                android:textColorHint="@android:color/darker_gray" />
-        </com.google.android.material.textfield.TextInputLayout>
-
-
-
-        <!-- Confirm Password -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:layout_marginRight="140dp"
-            android:text="CONFIRM PASSWORD"
-            android:textColor="@android:color/black"
-            android:textStyle="bold" />
-
-        <com.google.android.material.textfield.TextInputLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:passwordToggleEnabled="true"
-            >
-        <EditText
-            android:id="@+id/confirmPasswordEditText"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:background="@drawable/edit_text_background"
-            android:inputType="textPassword"
-            android:padding="12dp"
-            android:textColor="@android:color/black"
-            android:textColorHint="@android:color/darker_gray" />
-        </com.google.android.material.textfield.TextInputLayout>
-
-
-        <!-- Terms and Conditions Checkbox and Link -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginLeft="10dp"
-            android:layout_marginTop="16dp"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
-
-            <TextView
-                android:id="@+id/termsTextView"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Tap to read the"
-                android:textColor="@android:color/black" />
-
-            <TextView
-                android:id="@+id/termsAndConditionsTextView"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text=" Terms and Conditions"
-                android:textColor="@android:color/holo_red_light"
-                android:textStyle="bold" />
-
-            <CheckBox
-                android:id="@+id/termsCheckBox"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="end"
-                android:layout_marginLeft="60dp"
-                android:buttonTint="@android:color/black" />
-        </LinearLayout>
-
-        <!-- Register Button -->
-        <Button
-            android:id="@+id/registerButton"
-            android:layout_width="200dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:background="@drawable/button_background"
-            android:padding="10dp"
-
-            android:text="REGISTER"
-            android:textColor="@android:color/white"
-            android:textStyle="bold"
-            android:textSize="30dp"/>
-
-        <!-- Already have an account? Login -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:gravity="center"
-            android:orientation="horizontal">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Already have an account?"
-                android:textColor="@android:color/black" />
-
-            <TextView
-                android:id="@+id/loginTextView"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text=" Login"
-                android:textColor="@android:color/holo_red_light"
-                android:textStyle="bold" />
-        </LinearLayout>
     </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -1,21 +1,28 @@
 package com.example.cookpal
 
 import RandomRecipeAdapter
-import com.example.cookpal.adapters.ComplexSearchAdapter
 import android.app.ProgressDialog
 import android.content.Intent
 import android.os.Bundle
-import android.view.View
-import android.widget.*
+import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.SearchView
+import android.widget.Spinner
+import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.cookpal.Models.ComplexSearchApiResponse
 import com.example.cookpal.Models.RandomRecipeApiResponse
+import com.example.cookpal.adapters.ComplexSearchAdapter
+import com.example.cookpal.adapters.PopularRecipeAdapter
 import com.example.cookpal.listeners.ClickedRecipeListener
 import com.example.cookpal.listeners.ComplexSearchListener
 import com.example.cookpal.listeners.RandomRecipeResponseListener
+
 
 class MainActivity : AppCompatActivity(), ClickedRecipeListener {
 
@@ -38,24 +45,24 @@ class MainActivity : AppCompatActivity(), ClickedRecipeListener {
 
         dialog = ProgressDialog(this)
 
-        spinner = findViewById(R.id.spinner)
-        val arrayAdapter: ArrayAdapter<CharSequence> = ArrayAdapter.createFromResource(
-            this,
-            R.array.tags,
-            R.layout.spinner_text
-        )
-        spinner.adapter = arrayAdapter
-        spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                tags.clear()
-                val selectedTag = parent?.getItemAtPosition(position).toString()
-                tags.add(selectedTag)
-                manager.getRandomRecipes(randomRecipeResponseListener, tags)
-            }
-
-            override fun onNothingSelected(parent: AdapterView<*>?) {}
-        }
-        arrayAdapter.setDropDownViewResource(R.layout.spinner_inner_text)
+////        spinner = findViewById(R.id.spinner)
+////        val arrayAdapter: ArrayAdapter<CharSequence> = ArrayAdapter.createFromResource(
+////            this,
+////            R.array.tags,
+////            R.layout.spinner_text
+////        )
+//        spinner.adapter = arrayAdapter
+//        spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+//            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+//                tags.clear()
+//                val selectedTag = parent?.getItemAtPosition(position).toString()
+//                tags.add(selectedTag)
+//                manager.getRandomRecipes(randomRecipeResponseListener, tags)
+//            }
+//
+//            override fun onNothingSelected(parent: AdapterView<*>?) {}
+//        }
+//        arrayAdapter.setDropDownViewResource(R.layout.spinner_inner_text)
 
         manager = RequestManager(this)
 
@@ -65,7 +72,9 @@ class MainActivity : AppCompatActivity(), ClickedRecipeListener {
 
         recyclerPopular = findViewById(R.id.recycler_popular)
         recyclerPopular.setHasFixedSize(true)
-        recyclerPopular.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
+        recyclerPopular.layoutManager = LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false)
+        val gridLayoutManager = GridLayoutManager(this, 2)
+        recyclerPopular.layoutManager = gridLayoutManager
 
         searchView = findViewById(R.id.searchView_home)
         searchView.setOnClickListener { searchView.isIconified = false }
@@ -103,7 +112,6 @@ class MainActivity : AppCompatActivity(), ClickedRecipeListener {
         }
 
         navVoiceCommand.setOnClickListener {
-            // Start VoiceCommandActivity when this button is clicked
             setHighlightedTab(navVoiceCommand)
             val intent = Intent(this, VoiceCommandActivity::class.java)
             startActivity(intent)
@@ -146,9 +154,7 @@ class MainActivity : AppCompatActivity(), ClickedRecipeListener {
             dialog.dismiss()
             response.results?.let {
                 val recommendedRecipes = it.take(25)
-                val popularRecipes = it.drop(25)
-                recyclerRecommended.adapter = ComplexSearchAdapter(this@MainActivity, recommendedRecipes, this@MainActivity)
-                recyclerPopular.adapter = ComplexSearchAdapter(this@MainActivity, popularRecipes, this@MainActivity)
+                recyclerRecommended.adapter = ComplexSearchAdapter(this@MainActivity, recommendedRecipes,this@MainActivity)
             }
         }
 
@@ -165,7 +171,7 @@ class MainActivity : AppCompatActivity(), ClickedRecipeListener {
                 val recommendedRecipes = it.take(25)
                 val popularRecipes = it.drop(25)
                 recyclerRecommended.adapter = RandomRecipeAdapter(this@MainActivity, recommendedRecipes, tags, this@MainActivity)
-                recyclerPopular.adapter = RandomRecipeAdapter(this@MainActivity, popularRecipes, tags, this@MainActivity)
+                recyclerPopular.adapter = PopularRecipeAdapter(this@MainActivity, popularRecipes, this@MainActivity)
             }
         }
 

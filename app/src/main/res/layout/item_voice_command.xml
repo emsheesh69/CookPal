@@ -10,13 +10,15 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:textSize="18sp"/>
+        android:textColor="@color/white"
+        android:textSize="30dp"/>
 
     <TextView
         android:id="@+id/command_description"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="2"
-        android:textSize="16sp"
+        android:textColor="@color/white"
+        android:textSize="30sp"
         android:paddingStart="16dp"/>
 </LinearLayout>
