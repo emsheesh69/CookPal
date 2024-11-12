@@ -1,8 +1,8 @@
 {
   "functions": [
     {
-      "source": "functions",
-      "codebase": "default",
+      "source": "cookpal-functions",
+      "codebase": "cookpal-functions",
       "ignore": [
         "node_modules",
         ".git",
@@ -11,8 +11,10 @@
         "*.local"
       ],
       "predeploy": [
-        "npm --prefix \"$RESOURCE_DIR\" run lint"
+        "npm --prefix \"$RESOURCE_DIR\" run lint",
+        "npm --prefix \"$RESOURCE_DIR\" run build"
       ]
     }
   ]
 }
+

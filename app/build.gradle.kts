@@ -1,8 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
-    alias(libs.plugins.google.gms.google.services)
-
+    alias(libs.plugins.google.gms.google.services) // Firebase plugin
 }
 
 android {
@@ -27,53 +26,61 @@ android {
                 "proguard-rules.pro"
             )
         }
+        getByName("debug") {
+            isMinifyEnabled = false
+        }
     }
+
     packagingOptions {
-        exclude("META-INF/DEPENDENCIES") // Exclude the conflicting file
-        exclude("META-INF/LICENSE")     // Exclude other potential duplicate files
+        exclude("META-INF/DEPENDENCIES")
+        exclude("META-INF/LICENSE")
         exclude("META-INF/LICENSE.txt")
         exclude("META-INF/NOTICE")
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
     }
+
     kotlinOptions {
         jvmTarget = "1.8"
     }
-
 }
 
 dependencies {
-
+    // Core libraries
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
-    implementation (libs.picasso)
+    implementation(libs.picasso)
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
-    implementation(libs.firebase.auth)
-    implementation(libs.firebase.auth.ktx)
     implementation(libs.androidx.recyclerview)
-    implementation(libs.androidx.espresso.core)
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.junit)
-    implementation ("com.google.android.material:material:1.9.0")
-    androidTestImplementation(libs.androidx.espresso.core)
+
+    // Firebase and Firebase-related libraries (using Firebase BOM to ensure compatibility)
+    implementation(platform("com.google.firebase:firebase-bom:32.0.0")) // Latest BOM version
+    implementation("com.google.firebase:firebase-auth")
+    implementation("com.google.firebase:firebase-firestore")
+    implementation("com.google.firebase:firebase-database")
+
+    // Networking libraries
     implementation("com.squareup.retrofit2:retrofit:2.11.0")
     implementation("com.squareup.retrofit2:converter-gson:2.11.0")
-    implementation ("com.google.firebase:firebase-auth:21.1.0")
-    implementation ("com.google.firebase:firebase-database:20.3.0")
-    implementation ("com.google.firebase:firebase-auth:22.0.0")
-    implementation ("com.google.android.gms:play-services-auth:20.1.0")
-    implementation ("com.squareup.okhttp3:okhttp:4.10.0")
-    implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0")
-    implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.0")
-    implementation ("com.sendgrid:sendgrid-java:4.9.3") {
-        exclude(group = "org.apache.httpcomponents", module = "httpclient")
-    }
+    implementation("com.squareup.okhttp3:okhttp:4.10.0")
 
+    // Coroutine libraries
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.0")
 
+    // Google Play Services
+    implementation("com.google.android.gms:play-services-auth:20.1.0")
 
+    // Firebase functions (ensure the correct version is included)
+    implementation("com.google.firebase:firebase-functions-ktx")
 
+    // Testing libraries
+    testImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.espresso.core)
 }

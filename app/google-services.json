@@ -3,7 +3,7 @@
     "project_number": "199967096687",
     "firebase_url": "https://cookpal-a3631-default-rtdb.asia-southeast1.firebasedatabase.app",
     "project_id": "cookpal-a3631",
-    "storage_bucket": "cookpal-a3631.appspot.com"
+    "storage_bucket": "cookpal-a3631.firebasestorage.app"
   },
   "client": [
     {
