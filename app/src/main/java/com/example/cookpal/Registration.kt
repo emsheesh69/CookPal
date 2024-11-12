@@ -1,10 +1,14 @@
 package com.example.cookpal
 
 import SendGridHelper
+import android.app.Dialog
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import android.view.LayoutInflater
+import android.view.WindowManager
 import android.widget.Button
+import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
@@ -44,6 +48,13 @@ class Registration : AppCompatActivity() {
         val passwordInput = findViewById<EditText>(R.id.passwordEditText)
         val confirmPassInput = findViewById<EditText>(R.id.confirmPasswordEditText)
         val registerBtn = findViewById<Button>(R.id.registerButton)
+        val termsCheckBox = findViewById<CheckBox>(R.id.termsCheckBox)
+        val termsTextView = findViewById<TextView>(R.id.termsAndConditionsTextView)
+
+        // Open the Terms and Conditions popup when clicked
+        termsTextView.setOnClickListener {
+            showTermsPopup(termsCheckBox)
+        }
 
         registerBtn.setOnClickListener {
             val email = emailInput.text.toString()
@@ -122,12 +133,19 @@ class Registration : AppCompatActivity() {
             return
         }
 
+        if (!findViewById<CheckBox>(R.id.termsCheckBox).isChecked) {
+            Toast.makeText(this, "Please accept the terms and conditions", Toast.LENGTH_SHORT).show()
+            return
+        }
+
         // Check if email is unregistered
         checkIfEmailExists(email, emailInput) { isEmailRegistered ->
             if (!isEmailRegistered) {
                 sendOtpToEmail(email, password)
             }
         }
+
+
     }
 
     // Function to check if email exists
@@ -192,5 +210,80 @@ class Registration : AppCompatActivity() {
                 Log.e("Registration", "Error sending OTP: ${e.message}")
             }
         }
+    }
+
+    private fun showTermsPopup(termsCheckBox: CheckBox) {
+        val dialog = Dialog(this)
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.terms_conditions_dialog, null)
+        dialog.setContentView(dialogView)
+
+        // Set dialog window size to a larger portion of the screen
+        val window = dialog.window
+        if (window != null) {
+            val layoutParams = WindowManager.LayoutParams()
+            layoutParams.width = (resources.displayMetrics.widthPixels * 0.9).toInt() // 90% of screen width
+            layoutParams.height = (resources.displayMetrics.heightPixels * 0.8).toInt() // 80% of screen height
+            window.attributes = layoutParams
+        }
+
+        val termsContentTextView = dialogView.findViewById<TextView>(R.id.termsTextView)
+        val agreeButton = dialogView.findViewById<Button>(R.id.agreeButton)
+
+        // Load the terms and conditions content (you can replace this with actual content)
+        val termsContent = """
+        CookPal Terms and Conditions
+        Effective Date: November 12, 2024
+        
+        Welcome to CookPal! Please read these Terms and Conditions carefully before using our mobile application. By accessing or using CookPal, you agree to be bound by these terms. If you do not agree, please do not use the app.
+        
+        1. Acceptance of Terms
+        By using CookPal, you confirm that you are at least 18 years of age. You acknowledge that you have read, understood, and agree to be bound by these Terms and Conditions.
+        
+        2. User Age Requirement
+        CookPal is designed for users aged 18 and above. By using the app, you confirm that you meet the minimum age requirement. We are not liable for any consequences if users below this age use the app.
+        
+        3. Account Registration
+        To use CookPal, you must create an account and provide certain personal information, including your name and email address. You agree to provide accurate information and keep it updated. This information is used solely for registration and app-related purposes.
+        
+        
+        4. Data Collection and Privacy
+        We value your privacy and ensure that your personal information will not be shared with third parties. Data collected is only used for account management, app features, and user experience improvement. 
+        
+        
+        5. Recipe Sources and Credits
+        The recipes provided in CookPal are fetched from the Spoonacular API. We include credits to the original source of each recipe, including the name of the author or website where the recipe originated. We do not claim ownership of these recipes.
+        
+        6. Alternative Ingredients and AI Recipe Generation
+        CookPal offers alternative ingredient suggestions and an AI recipe generator through the integration of GPT-4. These alternatives are recommendations only. We are not responsible for any undesired results or reactions caused by these substitutions.
+        
+        7. User Safety
+        CookPal is designed to assist with cooking, but we are not liable for any accidents, injuries, or damages that may occur while using the app. Users are responsible for following proper safety precautions when preparing and cooking meals.
+        
+        8. Academic Use Disclaimer
+        CookPal is developed for academic purposes. The app and its features are part of a project and are not intended for commercial use. Feedback and data collected may be used for research and development purposes only.
+        
+        9. Changes to Terms and Conditions
+        We reserve the right to update these Terms and Conditions at any time. Changes will be communicated through the app or via email. Continued use of the app after any changes signifies your acceptance of the new terms.
+        
+        10. Termination of Use
+        We reserve the right to suspend or terminate access to CookPal if users violate these terms or engage in unauthorized activities.
+        
+        11. Limitation of Liability
+        CookPal and its developers are not liable for any damages arising from the use of the app, including but not limited to direct, indirect, or consequential damages.
+        
+        12. Contact Information
+        If you have any questions or concerns about these Terms and Conditions, please contact us at thecookpalapp@gmail.com.
+
+
+    """.trimIndent()
+
+        termsContentTextView.text = termsContent
+        // Handle "I Agree" button click
+        agreeButton.setOnClickListener {
+            termsCheckBox.isChecked = true
+            dialog.dismiss()
+        }
+
+        dialog.show()
     }
 }

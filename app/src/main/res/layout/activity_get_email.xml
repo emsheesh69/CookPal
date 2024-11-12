@@ -6,7 +6,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/background_gradient"
-    tools:context=".GetMobileNum"
+    tools:context=".GetEmail"
     android:padding="10dp">
 
     <ImageView
@@ -84,39 +84,7 @@
             android:textColorHint="@android:color/darker_gray" />
     </com.google.android.material.textfield.TextInputLayout>
 
-    <TextView
-        android:id="@+id/mobilenumber"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="30dp"
-        android:layout_marginRight="230dp"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/emailaddtxtbox"
-        android:text="MOBILE NUMBER"
-        android:textColor="@android:color/black"
-        android:textStyle="bold" />
 
-    <com.google.android.material.textfield.TextInputLayout
-        android:id="@+id/mobilenumbertxtbox"
-        android:layout_width="350dp"
-        android:layout_height="wrap_content"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/mobilenumber"
-        >
-        <EditText
-            android:id="@+id/mobilenumberdEditText"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:background="@drawable/edit_text_background"
-            android:hint="[+country code] [subscriber number]"
-            android:inputType="phone"
-            android:padding="12dp"
-            android:textColor="@android:color/black"
-            android:textColorHint="@android:color/darker_gray" />
-    </com.google.android.material.textfield.TextInputLayout>
 
 
 
@@ -133,7 +101,7 @@
         android:padding="15dp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/mobilenumbertxtbox"
+        app:layout_constraintTop_toBottomOf="@+id/emailaddtxtbox"
         android:layout_marginTop="40dp" />
 
     <TextView

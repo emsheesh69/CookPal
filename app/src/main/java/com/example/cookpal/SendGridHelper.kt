@@ -25,7 +25,7 @@ object SendGridHelper {
 
         val request = Request.Builder()
             .url("https://api.sendgrid.com/v3/mail/send")
-            .addHeader("Authorization", "Bearer API_KEY_HERE")
+            .addHeader("Authorization", "Bearer PUT API KEY HERE")
             .post(body)
             .build()
 
