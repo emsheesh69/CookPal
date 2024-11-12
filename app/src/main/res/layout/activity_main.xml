@@ -10,51 +10,28 @@
 
     <LinearLayout
         android:id="@+id/search_container"
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
         android:layout_margin="16dp"
         android:orientation="horizontal">
-
-        <Spinner
-            android:id="@+id/spinner"
-            android:layout_width="48dp"
+        <ImageButton
+            android:id="@+id/button_filter"
+            android:layout_width="wrap_content"
             android:layout_height="match_parent"
-            android:background="?attr/selectableItemBackground"
+            android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_filter"
-            android:entries="@array/tags"
-            android:contentDescription="Filter"
-            android:layout_gravity="center_vertical" />
-
-        <androidx.appcompat.widget.SearchView
-            android:id="@+id/search_bar"
-            android:layout_width="0dp"
-            android:layout_height="50dp"
-            android:hint="Search recipes..."
-            android:padding="12dp"
-            android:background="@drawable/search_bar_background"
-            android:drawableStart="@drawable/ic_search"
-            android:drawablePadding="8dp"
-            android:textColor="@color/black"
-            android:textColorHint="@color/gray"
-            android:textSize="16sp"
-            android:imeOptions="actionSearch" />
-    </LinearLayout>
-
-    <androidx.cardview.widget.CardView
-        android:layout_width="match_parent"
-        app:cardElevation="100dp"
-        android:layout_margin="3dp"
-        android:layout_height="wrap_content">
+            app:tint="@color/white" />
         <SearchView
             android:id="@+id/searchView_home"
             android:queryHint="Search recipe..."
             android:iconifiedByDefault="false"
-
             android:layout_width="match_parent"
-            android:layout_height="match_parent">
+            android:layout_height="match_parent" />
+    </LinearLayout>
 
-        </SearchView>
-    </androidx.cardview.widget.CardView>
+
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recycler_recommended"
         android:layout_width="match_parent"
@@ -97,7 +74,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:src="@drawable/ic_search"
-                android:tint="@color/highlight_color" />
+                app:tint="@color/highlight_color" />
 
             <TextView
                 android:id="@+id/text1"
@@ -106,7 +83,7 @@
                 android:gravity="center"
                 android:text="Discover Recipe"
                 android:textColor="@color/highlight_color"
-            android:textSize="10sp" />
+                android:textSize="10sp" />
         </LinearLayout>
 
         <LinearLayout
@@ -189,8 +166,5 @@
                 android:textColor="@color/white"
                 android:textSize="10sp" />
         </LinearLayout>
-
     </LinearLayout>
-
-
 </RelativeLayout>

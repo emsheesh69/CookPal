@@ -38,6 +38,12 @@
         android:layout_height="0dp"
         android:layout_weight="1" />
 
+    <Button
+        android:id="@+id/buttonGetRecipe"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Button" />
+
     <LinearLayout
         android:id="@+id/footer_navbar"
         android:layout_width="match_parent"
@@ -158,4 +164,5 @@
         </LinearLayout>
 
     </LinearLayout>
+
 </LinearLayout>

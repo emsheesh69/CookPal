@@ -108,18 +108,16 @@ class RecipeDetails : AppCompatActivity() {
 
     private fun setupNavigationBar() {
         findViewById<LinearLayout>(R.id.nav_discover).setOnClickListener {
-            // Intent to Discover Recipe
-             startActivity(Intent(this, MainActivity::class.java))
+            startActivity(Intent(this, MainActivity::class.java))
         }
 
         findViewById<LinearLayout>(R.id.nav_ingredients).setOnClickListener {
-            // Intent to My Ingredients
-             startActivity(Intent(this, MyIngredientsActivity::class.java))
+            startActivity(Intent(this, MyIngredientsActivity::class.java))
         }
 
         findViewById<LinearLayout>(R.id.nav_voice_command).setOnClickListener {
             // Intent to Voice Command
-            // startActivity(Intent(this, VoiceCommandActivity::class.java))
+            startActivity(Intent(this, VoiceCommandActivity::class.java))
         }
 
         findViewById<LinearLayout>(R.id.nav_settings).setOnClickListener {

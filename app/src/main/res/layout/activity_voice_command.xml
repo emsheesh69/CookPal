@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="wrap_content"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:background="@drawable/bg_cookpal"
-    android:layout_height="wrap_content">
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_cookpal">
 
     <TextView
         android:id="@+id/header_title"
@@ -21,62 +21,54 @@
         android:layout_height="wrap_content"
         android:layout_below="@id/header_title"
         android:layout_centerHorizontal="true"
-        android:layout_centerVertical="true"
-        android:stretchColumns="0"
-        android:layout_marginBottom="16dp">
+        android:layout_marginHorizontal="24dp"
+        android:layout_marginBottom="16dp"
+        android:stretchColumns="0">
 
-        <TableRow>
+        <TableRow
+            android:background="@color/row_header_color">
             <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
+                android:padding="8dp"
                 android:text="Action"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                android:textColor="@color/white" />
 
             <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="2"
+                android:padding="8dp"
                 android:text="Description"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                android:textColor="@color/white" />
         </TableRow>
 
-        <TableRow>
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Open Recipe" />
+        <TableRow
+            android:background="@color/row_even_color">
 
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="2"
-                android:text="Opens the selected recipe." />
         </TableRow>
 
-        <TableRow>
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Add Ingredient" />
+        <TableRow
+            android:background="@color/row_odd_color">
 
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="2"
-                android:text="Adds an ingredient to your list." />
         </TableRow>
+
+
     </TableLayout>
+
     <LinearLayout
         android:id="@+id/footer_navbar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
         android:background="#5D4C4C"
+        android:backgroundTint="#422020"
         android:gravity="center"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        android:padding="8dp">
 
         <LinearLayout
             android:id="@+id/nav_discover"
@@ -86,15 +78,14 @@
             android:gravity="center"
             android:orientation="vertical"
             android:clickable="true"
-            android:background="?attr/selectableItemBackground"
-            android:padding="16dp"> <!-- Padding here can remain for touch target -->
+            android:background="?attr/selectableItemBackground">
 
             <ImageView
                 android:id="@+id/icon1"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                app:tint="@color/white"
-                android:src="@drawable/ic_search" />
+                android:src="@drawable/ic_search"
+                app:tint="@color/white" />
 
             <TextView
                 android:id="@+id/text1"
@@ -114,15 +105,14 @@
             android:gravity="center"
             android:orientation="vertical"
             android:clickable="true"
-            android:background="?attr/selectableItemBackground"
-            android:padding="16dp">
+            android:background="?attr/selectableItemBackground">
 
             <ImageView
                 android:id="@+id/icon2"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                app:tint="@color/white"
-                android:src="@drawable/ic_ingred" />
+                android:src="@drawable/ic_ingred"
+                app:tint="@color/white" />
 
             <TextView
                 android:id="@+id/text2"
@@ -142,15 +132,14 @@
             android:gravity="center"
             android:orientation="vertical"
             android:clickable="true"
-            android:background="?attr/selectableItemBackground"
-            android:padding="16dp">
+            android:background="?attr/selectableItemBackground">
 
             <ImageView
                 android:id="@+id/icon3"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:tint="@color/highlight_color"
-                android:src="@drawable/ic_vc" />
+                android:src="@drawable/ic_vc"
+                app:tint="@color/highlight_color" />
 
             <TextView
                 android:id="@+id/text3"
@@ -170,15 +159,14 @@
             android:gravity="center"
             android:orientation="vertical"
             android:clickable="true"
-            android:background="?attr/selectableItemBackground"
-            android:padding="16dp">
+            android:background="?attr/selectableItemBackground">
 
             <ImageView
                 android:id="@+id/icon4"
-                app:tint="@color/white"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:src="@drawable/ic_settings" />
+                android:src="@drawable/ic_settings"
+                app:tint="@color/white" />
 
             <TextView
                 android:id="@+id/text4"
@@ -189,7 +177,6 @@
                 android:textColor="@color/white"
                 android:textSize="10sp" />
         </LinearLayout>
-
     </LinearLayout>
 
 </RelativeLayout>

@@ -1,10 +1,14 @@
 package com.example.cookpal
 
 import MyIngredientsAdapter
+import OpenAIRequest
+import OpenAIResponse
+import OpenAIService
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
+import android.util.Log
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageView
@@ -15,13 +19,23 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.appcompat.app.AlertDialog
 import com.example.cookpal.MainActivity
 import com.example.cookpal.R
+
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
+
+
 
 class MyIngredientsActivity : AppCompatActivity() {
 
     private lateinit var editTextIngredient: EditText
     private lateinit var buttonAddIngredient: Button
+    private lateinit var buttonGetRecipe: Button
     private lateinit var recyclerIngredients: RecyclerView
     private lateinit var ingredientsAdapter: MyIngredientsAdapter
     private var ingredientsList: MutableList<String> = mutableListOf()
@@ -31,13 +45,28 @@ class MyIngredientsActivity : AppCompatActivity() {
     private lateinit var navVoiceCommand: LinearLayout
     private lateinit var navSettings: LinearLayout
 
+    // Initialize Retrofit and apiService directly as a property
+    private val apiService: OpenAIService by lazy {
+        Retrofit.Builder()
+            .baseUrl("https://api.openai.com/")
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(OpenAIService::class.java)
+    }
+
+//    private lateinit var apiService: OpenAIService
+
     private lateinit var sharedPreferences: SharedPreferences
     private val prefsFileName = "MyIngredientsPrefs"
     private val ingredientsKey = "ingredientsList"
 
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_my_ingredients)
+
+        // Log the OpenAI API key to check if it's loaded correctly
+        Log.d("ChatGPT", "OpenAI API Key: ${BuildConfig.OPENAI_API_KEY}")
 
         // Initialize Shared Preferences
         sharedPreferences = getSharedPreferences(prefsFileName, Context.MODE_PRIVATE)
@@ -45,6 +74,7 @@ class MyIngredientsActivity : AppCompatActivity() {
 
         editTextIngredient = findViewById(R.id.editTextIngredient)
         buttonAddIngredient = findViewById(R.id.buttonAddIngredient)
+        buttonGetRecipe = findViewById(R.id.buttonGetRecipe)
         recyclerIngredients = findViewById(R.id.recyclerIngredients)
 
         ingredientsAdapter = MyIngredientsAdapter(ingredientsList, ::editIngredient, ::deleteIngredient)
@@ -62,6 +92,16 @@ class MyIngredientsActivity : AppCompatActivity() {
                 Toast.makeText(this, "Please enter an ingredient", Toast.LENGTH_SHORT).show()
             }
         }
+
+        buttonGetRecipe.setOnClickListener {
+            if (ingredientsList.isNotEmpty()) {
+                getRecipeSuggestion()
+            } else {
+                Toast.makeText(this, "Please add ingredients first.", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+
 
         // Initialize Navigation Bar Views
         navDiscover = findViewById(R.id.nav_discover)
@@ -83,7 +123,18 @@ class MyIngredientsActivity : AppCompatActivity() {
 
         // Highlight My Ingredients tab
         setHighlightedTab(navIngredients)
+
+//        val retrofit = Retrofit.Builder()
+//            .baseUrl("https://api.openai.com/")
+//            .addConverterFactory(GsonConverterFactory.create())
+//            .build()
+//            .create(OpenAIService::class.java)
+//
+//        val apiService = retrofit.create(OpenAIService::class.java)
+
     }
+
+
 
     private fun loadIngredients() {
         val savedIngredients = sharedPreferences.getStringSet(ingredientsKey, emptySet())
@@ -144,4 +195,43 @@ class MyIngredientsActivity : AppCompatActivity() {
         ingredientsAdapter.notifyItemRemoved(position)
         saveIngredients() // Save updated ingredients after deletion
     }
+
+    private fun getRecipeSuggestion() {
+        // Join ingredients into a single prompt
+        val prompt = "Suggest a recipe using these ingredients: ${ingredientsList.joinToString(", ")}. Provide detailed cooking instructions."
+
+        // Create the API request
+        val openAIRequest = OpenAIRequest(prompt = prompt)
+
+        // Send the API request
+        apiService.getRecipeSuggestions("Bearer ${BuildConfig.OPENAI_API_KEY}", openAIRequest)
+            .enqueue(object : Callback<OpenAIResponse> {
+            override fun onResponse(call: Call<OpenAIResponse>, response: Response<OpenAIResponse>) {
+                if (response.isSuccessful) {
+                    val recipeSuggestion = response.body()?.choices?.firstOrNull()?.text
+                    // Display the suggestion (e.g., in a TextView or AlertDialog)
+                    showRecipeSuggestion(recipeSuggestion ?: "No recipe found.")
+                    Log.d("ChatGPT", "Recipe suggestion: $recipeSuggestion")
+                } else {
+                    Toast.makeText(this@MyIngredientsActivity, "Failed to get recipe suggestion.", Toast.LENGTH_SHORT).show()
+                    Log.e("ChatGPT", "Failed to get response. Code: ${response.code()} Message: ${response.message()}")                }
+            }
+
+            override fun onFailure(call: Call<OpenAIResponse>, t: Throwable) {
+                Toast.makeText(this@MyIngredientsActivity, "API request failed: ${t.message}", Toast.LENGTH_SHORT).show()
+                Log.e("ChatGPT", "Error: ${t.message}")
+            }
+        })
+    }
+
+    private fun showRecipeSuggestion(recipe: String) {
+        val dialog = AlertDialog.Builder(this)
+            .setTitle("Recipe Suggestion")
+            .setMessage(recipe)
+            .setPositiveButton("OK", null)
+            .create()
+        dialog.show()
+    }
+
+
 }
