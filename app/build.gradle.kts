@@ -47,25 +47,30 @@ android {
                 "proguard-rules.pro"
             )
         }
+        getByName("debug") {
+            isMinifyEnabled = false
+        }
     }
+
     packagingOptions {
-        exclude("META-INF/DEPENDENCIES") // Exclude the conflicting file
-        exclude("META-INF/LICENSE")     // Exclude other potential duplicate files
+        exclude("META-INF/DEPENDENCIES")
+        exclude("META-INF/LICENSE")
         exclude("META-INF/LICENSE.txt")
         exclude("META-INF/NOTICE")
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
     }
+
     kotlinOptions {
         jvmTarget = "1.8"
     }
-
 }
 
 dependencies {
-
+    // Core libraries
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
@@ -91,6 +96,25 @@ dependencies {
     implementation (libs.okhttp)
     implementation (libs.kotlinx.coroutines.core.v160)
     implementation (libs.kotlinx.coroutines.android.v160)
+    implementation ("com.sendgrid:sendgrid-java:4.9.3") {
+        exclude(group = "org.apache.httpcomponents", module = "httpclient")
+    }
+    implementation(libs.androidx.espresso.core)
+    implementation(libs.firebase.functions.ktx)
+    implementation(libs.firebase.firestore.ktx)
+    testImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.junit)
+    implementation ("com.google.android.material:material:1.9.0")
+    androidTestImplementation(libs.androidx.espresso.core)
+    implementation("com.squareup.retrofit2:retrofit:2.11.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.11.0")
+    implementation ("com.google.firebase:firebase-auth:21.1.0")
+    implementation ("com.google.firebase:firebase-database:20.3.0")
+    implementation ("com.google.firebase:firebase-auth:22.0.0")
+    implementation ("com.google.android.gms:play-services-auth:20.1.0")
+    implementation ("com.squareup.okhttp3:okhttp:4.10.0")
+    implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0")
+    implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.0")
     implementation ("com.sendgrid:sendgrid-java:4.9.3") {
         exclude(group = "org.apache.httpcomponents", module = "httpclient")
     }

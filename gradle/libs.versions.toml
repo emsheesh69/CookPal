@@ -1,5 +1,5 @@
 [versions]
-agp = "8.5.2"
+agp = "8.7.1"
 converterGson = "latest.version"
 converterGsonVersion = "2.9.0"
 firebaseAuthVersion = "21.1.0"
