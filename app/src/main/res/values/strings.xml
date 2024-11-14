@@ -1,6 +1,6 @@
 <resources>
     <string name="app_name">CookPal</string>
-    <string name="api_key">ed8f2469d36747bab549f6ade1686789</string>
+    <string name="api_key">f639cd13a3fe4ed2977e874caab50136</string>
     <string-array name="tags">
         <item>Main course</item>
         <item>Side dish</item>
