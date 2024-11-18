@@ -117,6 +117,11 @@ class MainActivity : AppCompatActivity(), ClickedRecipeListener {
             startActivity(intent)
         }
 
+        navSettings.setOnClickListener {
+            setHighlightedTab(navSettings)
+            val intent = Intent(this, UserPreference::class.java)
+            startActivity(intent)
+        }
         setHighlightedTab(navDiscover)
     }
 

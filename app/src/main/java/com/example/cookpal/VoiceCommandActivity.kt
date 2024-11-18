@@ -9,6 +9,7 @@ import android.widget.TableRow
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.children
+import com.google.firebase.firestore.auth.User
 
 class VoiceCommandActivity : AppCompatActivity() {
 
@@ -37,26 +38,32 @@ class VoiceCommandActivity : AppCompatActivity() {
         )
 
         for ((index, command) in commands.withIndex()) {
-            val row = TableRow(this)
-
-            row.setBackgroundColor(resources.getColor(R.color.black_tint))
+            val row = TableRow(this).apply {
+                setBackgroundColor(resources.getColor(R.color.black_tint))
+                layoutParams = TableLayout.LayoutParams(
+                    TableLayout.LayoutParams.MATCH_PARENT,
+                    TableLayout.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    setMargins(0, 8, 0, 8)
+                }
+            }
 
             val actionTextView = TextView(this).apply {
-                layoutParams = TableRow.LayoutParams(0, TableRow.LayoutParams.WRAP_CONTENT, 1f)
+                layoutParams = TableRow.LayoutParams(0, TableRow.LayoutParams.MATCH_PARENT, 1f)
                 text = command.action
                 textSize = 18f
                 setTextColor(resources.getColor(R.color.white))
                 setPadding(16, 16, 16, 16)
-                gravity = Gravity.START
+                gravity = Gravity.CENTER_VERTICAL or Gravity.START
             }
 
             val descriptionTextView = TextView(this).apply {
-                layoutParams = TableRow.LayoutParams(0, TableRow.LayoutParams.WRAP_CONTENT, 2f)
+                layoutParams = TableRow.LayoutParams(0, TableRow.LayoutParams.MATCH_PARENT, 2f)
                 text = command.description
                 textSize = 16f
                 setTextColor(resources.getColor(R.color.black))
                 setPadding(16, 16, 16, 16)
-                gravity = Gravity.START
+                gravity = Gravity.CENTER // Centers the text horizontally and vertically
                 setBackgroundColor(resources.getColor(R.color.white))
             }
 
@@ -66,6 +73,7 @@ class VoiceCommandActivity : AppCompatActivity() {
             tableCommands.addView(row)
         }
     }
+
 
     private fun setupNavigationBar() {
         findViewById<LinearLayout>(R.id.nav_discover).setOnClickListener {
@@ -82,8 +90,7 @@ class VoiceCommandActivity : AppCompatActivity() {
         }
 
         findViewById<LinearLayout>(R.id.nav_settings).setOnClickListener {
-            // Intent to Settings
-            // startActivity(Intent(this, SettingsActivity::class.java))
+            startActivity(Intent(this, UserPreference::class.java))
         }
     }
 }

@@ -4,6 +4,7 @@ import android.app.ProgressDialog
 import android.content.Intent
 import android.os.Bundle
 import android.text.Html
+import android.widget.Button
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -28,6 +29,9 @@ class RecipeDetails : AppCompatActivity() {
     private lateinit var manager: RequestManager
     private lateinit var dialog: ProgressDialog
     private lateinit var textViewMealInstructions: TextView
+    private lateinit var startCookingButton: Button
+
+    private var instructions: ArrayList<String> = ArrayList()  // Store instructions here
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,6 +43,8 @@ class RecipeDetails : AppCompatActivity() {
         imageViewMealImage = findViewById(R.id.meal_image)
         recyclerMealIngredients = findViewById(R.id.meal_ingredients)
         textViewMealInstructions = findViewById(R.id.meal_instructions)
+        startCookingButton = findViewById(R.id.start_cooking_button)  // Initialize button
+
         id = intent.getStringExtra("id")?.toIntOrNull() ?: 0
 
         val toolbar = findViewById<Toolbar>(R.id.toolbar)
@@ -59,6 +65,11 @@ class RecipeDetails : AppCompatActivity() {
 
         fetchRecipeDetails(id)
 
+        // Set up button click listener
+        startCookingButton.setOnClickListener {
+            startCooking()
+        }
+
         setupNavigationBar()
     }
 
@@ -70,39 +81,45 @@ class RecipeDetails : AppCompatActivity() {
         override fun didFetch(response: RecipeDetailsResponse, message: String) {
             dialog.dismiss()
 
-            textViewMealName.text = response.title
-            textViewMealSource.text = response.sourceName
+            textViewMealName.text = response.title ?: "No title available"
+            textViewMealSource.text = response.sourceName ?: "No source available"
 
             val fullSummary = response.summary
-            val summarySentences = fullSummary.split(". ").take(2).joinToString(". ") + "."
+            val summarySentences = fullSummary?.split(". ")?.take(2)?.joinToString(". ") + "."
             textViewMealSummary.text = Html.fromHtml(summarySentences, Html.FROM_HTML_MODE_LEGACY)
 
-            Picasso.get()
-                .load(response.image)
-                .into(imageViewMealImage)
+            Picasso.get().load(response.image).into(imageViewMealImage)
 
+            // Display all instructions if available
             if (!response.analyzedInstructions.isNullOrEmpty()) {
                 val steps = response.analyzedInstructions[0].steps
-                val instructions = steps.joinToString("\n") {
-                    "${it.number}. ${it.step}"
-                }
-                textViewMealInstructions.text = instructions
+                instructions = ArrayList(steps.map { it.step ?: "No instruction available" })
+
+                // Display instructions in the TextView
+                textViewMealInstructions.text = instructions.joinToString("\n\n") // Joining each step with a new line
             } else {
                 textViewMealInstructions.text = "Instructions not available"
             }
 
             recyclerMealIngredients.setHasFixedSize(true)
-            recyclerMealIngredients.layoutManager =
-                LinearLayoutManager(this@RecipeDetails, LinearLayoutManager.HORIZONTAL, false)
-
-            val ingredientsAdapter =
-                IngredientsAdapter(this@RecipeDetails, response.extendedIngredients)
+            recyclerMealIngredients.layoutManager = LinearLayoutManager(this@RecipeDetails, LinearLayoutManager.HORIZONTAL, false)
+            val ingredientsAdapter = IngredientsAdapter(this@RecipeDetails, response.extendedIngredients)
             recyclerMealIngredients.adapter = ingredientsAdapter
         }
 
         override fun didError(message: String) {
             dialog.dismiss()
             Toast.makeText(this@RecipeDetails, message, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun startCooking() {
+        if (instructions.isNotEmpty()) {
+            val intent = Intent(this@RecipeDetails, CookingActivity::class.java)
+            intent.putStringArrayListExtra("instructions", instructions)  // Pass instructions to the next activity
+            startActivity(intent)
+        } else {
+            Toast.makeText(this, "Instructions not available", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -116,12 +133,10 @@ class RecipeDetails : AppCompatActivity() {
         }
 
         findViewById<LinearLayout>(R.id.nav_voice_command).setOnClickListener {
-            // Intent to Voice Command
             startActivity(Intent(this, VoiceCommandActivity::class.java))
         }
 
         findViewById<LinearLayout>(R.id.nav_settings).setOnClickListener {
-            // Intent to Settings
             // startActivity(Intent(this, SettingsActivity::class.java))
         }
     }

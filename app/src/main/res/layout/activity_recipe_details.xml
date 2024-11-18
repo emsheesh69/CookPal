@@ -119,6 +119,17 @@
                     android:textColor="@android:color/white"
                     android:layout_margin="8dp" />
             </LinearLayout>
+            <Button
+                android:id="@+id/start_cooking_button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Start Cooking"
+                android:textSize="25sp"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="16dp"
+                android:padding="12dp"
+                android:background="@drawable/rounded_button"
+                android:textColor="@android:color/white" />
 
         </LinearLayout>
     </ScrollView>
@@ -150,7 +161,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:src="@drawable/ic_search"
-                android:tint="@color/white" />
+                app:tint="@color/white" />
 
             <TextView
                 android:id="@+id/text1"

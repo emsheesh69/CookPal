@@ -15,6 +15,7 @@ import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import com.google.firebase.FirebaseApp
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
@@ -24,6 +25,7 @@ import java.util.*
 import kotlin.random.Random
 
 class Registration : AppCompatActivity() {
+    private lateinit var auth: FirebaseAuth
     lateinit var database: FirebaseDatabase
     private lateinit var sendGridHelper: SendGridHelper
     private lateinit var generatedOtp: String // Used to store the OTP for email verification
@@ -36,6 +38,14 @@ class Registration : AppCompatActivity() {
         // Initialize Firebase Realtime Database
         FirebaseApp.initializeApp(this)
         database = FirebaseDatabase.getInstance()
+        auth = FirebaseAuth.getInstance()
+
+
+        // Check if the user is already logged in
+        if (auth.currentUser != null) {
+            // User is already signed in, redirect to MainActivity
+            navigateToMainActivity()
+        }
 
         val loginBtn = findViewById<TextView>(R.id.loginTextView)
         loginBtn.setOnClickListener {
@@ -181,6 +191,14 @@ class Registration : AppCompatActivity() {
             })
     }
 
+    // Function to navigate to MainActivity
+    private fun navigateToMainActivity() {
+        val intent = Intent(this, MainActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        startActivity(intent)
+        finish()
+    }
+
     // Function to send OTP using SendGrid
     private fun sendOtpToEmail(email: String, password: String) {
         generatedOtp = Random.nextInt(100000, 999999).toString()
@@ -253,25 +271,28 @@ class Registration : AppCompatActivity() {
         5. Recipe Sources and Credits
         The recipes provided in CookPal are fetched from the Spoonacular API. We include credits to the original source of each recipe, including the name of the author or website where the recipe originated. We do not claim ownership of these recipes.
         
-        6. Alternative Ingredients and AI Recipe Generation
+        6. Microphone Usage
+        When using the cooking instructions feature, CookPal will automatically activate your device’s microphone to facilitate hands-free navigation through voice commands. The microphone will only be used for this purpose and will be disabled once the feature is exited. No audio is recorded or stored during the use of the microphone. By using this feature, you consent to the temporary use of your microphone as described.
+        
+        7. Alternative Ingredients and AI Recipe Generation
         CookPal offers alternative ingredient suggestions and an AI recipe generator through the integration of GPT-4. These alternatives are recommendations only. We are not responsible for any undesired results or reactions caused by these substitutions.
         
-        7. User Safety
+        8. User Safety
         CookPal is designed to assist with cooking, but we are not liable for any accidents, injuries, or damages that may occur while using the app. Users are responsible for following proper safety precautions when preparing and cooking meals.
         
-        8. Academic Use Disclaimer
+        9. Academic Use Disclaimer
         CookPal is developed for academic purposes. The app and its features are part of a project and are not intended for commercial use. Feedback and data collected may be used for research and development purposes only.
         
-        9. Changes to Terms and Conditions
+        10. Changes to Terms and Conditions
         We reserve the right to update these Terms and Conditions at any time. Changes will be communicated through the app or via email. Continued use of the app after any changes signifies your acceptance of the new terms.
         
-        10. Termination of Use
+        11. Termination of Use
         We reserve the right to suspend or terminate access to CookPal if users violate these terms or engage in unauthorized activities.
         
-        11. Limitation of Liability
+        12. Limitation of Liability
         CookPal and its developers are not liable for any damages arising from the use of the app, including but not limited to direct, indirect, or consequential damages.
         
-        12. Contact Information
+        13. Contact Information
         If you have any questions or concerns about these Terms and Conditions, please contact us at thecookpalapp@gmail.com.
 
 

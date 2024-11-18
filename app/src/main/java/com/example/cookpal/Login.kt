@@ -21,6 +21,12 @@ class Login : AppCompatActivity() {
 
         auth = FirebaseAuth.getInstance()
 
+        // Check if the user is already logged in
+        if (auth.currentUser != null) {
+            // User is already signed in, redirect to MainActivity
+            navigateToMainActivity()
+        }
+
         val forgotPassbtn = findViewById<TextView>(R.id.forgotPassword)
         forgotPassbtn.setOnClickListener {
             val intent = Intent(this, GetEmail::class.java)
@@ -99,6 +105,14 @@ class Login : AppCompatActivity() {
                     callback(false)
                 }
             }
+    }
+
+    // Function to navigate to MainActivity
+    private fun navigateToMainActivity() {
+        val intent = Intent(this, MainActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        startActivity(intent)
+        finish()
     }
 
     // Function to sign in the user with email and password
