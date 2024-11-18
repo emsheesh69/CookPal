@@ -18,11 +18,13 @@ import android.speech.SpeechRecognizer
 import android.speech.RecognizerIntent
 import android.content.Intent
 import android.speech.RecognitionListener
+import android.speech.tts.UtteranceProgressListener
 
 class CookingActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     private lateinit var textViewCookingInstruction: TextView
     private lateinit var textViewStepIndicator: TextView
+    private lateinit var finishCookingButton: Button
     private lateinit var nextButton: LinearLayout
     private lateinit var prevButton: LinearLayout
     private lateinit var timerLayout: View
@@ -40,6 +42,8 @@ class CookingActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private lateinit var speechRecognizer: SpeechRecognizer
     private val REQUEST_CODE_SPEECH_INPUT = 100
     private var isListening = false
+    private lateinit var recognitionIntent: Intent
+    private var isRecognitionEnabled = false
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -56,16 +60,20 @@ class CookingActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         timerMinutesInput = findViewById(R.id.timer_minutes_input)
         timerSecondsInput = findViewById(R.id.timer_seconds_input)
         startStopTimerButton = findViewById(R.id.start_stop_timer_button)
+        finishCookingButton = findViewById(R.id.finish_cooking_button)
 
         instructions = intent.getStringArrayListExtra("instructions") ?: emptyList()
 
         speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this)
+        recognitionIntent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
+        }
         setupVoiceCommandListener()
-
-
 
         textToSpeech = TextToSpeech(this, this)
         updateInstructionView()
+
         nextButton.setOnClickListener {
             if (currentStepIndex < instructions.size - 1) {
                 stopVoiceRecognition()
@@ -83,6 +91,10 @@ class CookingActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 speakOut(textViewCookingInstruction.text.toString())
             }
         }
+        finishCookingButton.setOnClickListener {
+            Toast.makeText(this, "Cooking completed!", Toast.LENGTH_SHORT).show()
+            finish()
+        }
 
         startStopTimerButton.setOnClickListener {
             if (timer == null) {
@@ -97,12 +109,14 @@ class CookingActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             onTimerClick(it)
         }
     }
+
     private fun stopVoiceRecognition() {
         if (isListening) {
             speechRecognizer.stopListening()
             isListening = false
         }
     }
+
     override fun onInit(status: Int) {
         if (status == TextToSpeech.SUCCESS) {
             val result = textToSpeech.setLanguage(Locale.US)
@@ -113,31 +127,28 @@ class CookingActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 if (instructions.isNotEmpty()) {
                     Handler(mainLooper).postDelayed({
                         speakOut(instructions[currentStepIndex])
-                    }, 500)
+                    }, 3000)
                 }
             }
         } else {
             Log.e("TTS", "Initialization failed")
         }
     }
+
     private fun setupVoiceCommandListener() {
         speechRecognizer.setRecognitionListener(object : RecognitionListener {
-            override fun onReadyForSpeech(params: Bundle?) {
-            }
-            override fun onBeginningOfSpeech() {
-            }
-            override fun onRmsChanged(rmsdB: Float) {
-            }
-            override fun onBufferReceived(buffer: ByteArray?) {
-            }
+            override fun onReadyForSpeech(params: Bundle?) {}
+            override fun onBeginningOfSpeech() {}
+            override fun onRmsChanged(rmsdB: Float) {}
+            override fun onBufferReceived(buffer: ByteArray?) {}
             override fun onEndOfSpeech() {
                 isListening = false
             }
-
             override fun onError(error: Int) {
                 isListening = false
                 Toast.makeText(this@CookingActivity, "Error: $error", Toast.LENGTH_SHORT).show()
             }
+
             override fun onResults(results: Bundle?) {
                 isListening = false
                 val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
@@ -145,10 +156,9 @@ class CookingActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                     handleVoiceCommand(matches[0])
                 }
             }
-            override fun onPartialResults(partialResults: Bundle?) {
-            }
-            override fun onEvent(eventType: Int, params: Bundle?) {
-            }
+
+            override fun onPartialResults(partialResults: Bundle?) {}
+            override fun onEvent(eventType: Int, params: Bundle?) {}
         })
     }
 
@@ -158,7 +168,7 @@ class CookingActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
                 putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
                 putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
-                putExtra(RecognizerIntent.EXTRA_PROMPT, "Say 'next' or 'previous'")
+                putExtra(RecognizerIntent.EXTRA_PROMPT, "Say 'next' or 'back'")
             }
             speechRecognizer.startListening(intent)
         } else {
@@ -178,7 +188,7 @@ class CookingActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                     Toast.makeText(this, "You are already at the last step", Toast.LENGTH_SHORT).show()
                 }
             }
-            "previous" -> {
+            "go back" -> {
                 if (currentStepIndex > 0) {
                     currentStepIndex--
                     updateInstructionView()
@@ -193,34 +203,51 @@ class CookingActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             }
         }
     }
+
     private fun speakOut(text: String) {
-        if (isTtsInitialized) {
-            if (text.isNotBlank()) {
-                Log.d("TTS", "Speaking: $text")
+        val params = Bundle().apply {
+            putString(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, "UniqueID")
+        }
 
-                stopVoiceRecognition()
+        textToSpeech.speak(text, TextToSpeech.QUEUE_FLUSH, params, "UniqueID")
 
-                val params = HashMap<String, String>()
-                params[TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID] = "unique_utterance_id"
-
-                textToSpeech.setOnUtteranceCompletedListener {
-                    runOnUiThread {
-                        Log.d("TTS", "TTS finished. Enabling voice recognition.")
-                        Handler(mainLooper).postDelayed({
-                            startVoiceRecognition()
-                        }, 3000)
-                    }
+        textToSpeech.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+            override fun onStart(utteranceId: String?) {
+                // Disable voice recognition while TTS is speaking
+                runOnUiThread {
+                    disableVoiceRecognition()
                 }
-
-                textToSpeech.speak(text, TextToSpeech.QUEUE_FLUSH, params)
-            } else {
-                Log.e("TTS", "Text is empty or blank")
             }
-        } else {
-            Log.e("TTS", "TTS is not initialized")
+
+            override fun onDone(utteranceId: String?) {
+                // Re-enable voice recognition after TTS finishes speaking
+                runOnUiThread {
+                    enableVoiceRecognition()
+                }
+            }
+
+            override fun onError(utteranceId: String?) {
+                runOnUiThread {
+                    Toast.makeText(this@CookingActivity, "Error in TTS", Toast.LENGTH_SHORT).show()
+                    enableVoiceRecognition()
+                }
+            }
+        })
+    }
+
+    private fun disableVoiceRecognition() {
+        if (isRecognitionEnabled) {
+            speechRecognizer.stopListening()
+            isRecognitionEnabled = false
         }
     }
 
+    private fun enableVoiceRecognition() {
+        if (!isRecognitionEnabled) {
+            speechRecognizer.startListening(recognitionIntent)
+            isRecognitionEnabled = true
+        }
+    }
 
     private fun startTimer() {
         val minutesText = timerMinutesInput.text.toString()
@@ -234,79 +261,35 @@ class CookingActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             if (timeLeftInMillis > 0) {
                 timer = object : CountDownTimer(timeLeftInMillis, 1000) {
                     override fun onTick(millisUntilFinished: Long) {
-                        timeLeftInMillis = millisUntilFinished
-                        updateTimerText()
+                        val minutesLeft = (millisUntilFinished / 1000) / 60
+                        val secondsLeft = (millisUntilFinished / 1000) % 60
+                        timerText.text = String.format("%02d:%02d", minutesLeft, secondsLeft)
                     }
 
                     override fun onFinish() {
-                        stopTimer()
-                        Toast.makeText(this@CookingActivity, "Timer finished!", Toast.LENGTH_SHORT).show()
-                        playAlarmSound()
+                        timerText.text = "00:00"
+                        mediaPlayer.start()
+                        Toast.makeText(applicationContext, "Timer finished!", Toast.LENGTH_SHORT).show()
                     }
-                }
-                timer?.start()
-                startStopTimerButton.text = "Stop"
-                timerLayout.visibility = View.VISIBLE
-            } else {
-                Toast.makeText(this, "Please enter a valid time.", Toast.LENGTH_SHORT).show()
+                }.start()
             }
-        } else {
-            Toast.makeText(this, "Please enter valid numbers for minutes and seconds.", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    private fun playAlarmSound() {
-        if (!mediaPlayer.isPlaying) {
-            mediaPlayer.start()
         }
     }
 
     private fun stopTimer() {
         timer?.cancel()
         timer = null
-        startStopTimerButton.text = "Start"
-
-        if (::mediaPlayer.isInitialized && mediaPlayer.isPlaying) {
-            mediaPlayer.stop()
-            mediaPlayer.prepare()
-        }
-    }
-
-    private fun updateTimerText() {
-        val minutes = (timeLeftInMillis / 1000) / 60
-        val seconds = (timeLeftInMillis / 1000) % 60
-        timerText.text = String.format("%02d:%02d", minutes, seconds)
-    }
-
-    private fun onTimerClick(view: View) {
-        timerLayout.visibility = if (timerLayout.visibility == View.VISIBLE) View.GONE else View.VISIBLE
+        timerText.text = "00:00"
     }
 
     private fun updateInstructionView() {
-        val currentInstruction = instructions[currentStepIndex]
-
-        if (instructions.isNotEmpty()) {
-            textViewCookingInstruction.text = currentInstruction
-            textViewStepIndicator.text = "Step ${currentStepIndex + 1} / ${instructions.size}"
-            prevButton.isEnabled = currentStepIndex > 0
-            nextButton.isEnabled = currentStepIndex < instructions.size - 1
-        }
-
-        speakOut(currentInstruction)
-
-        if (currentStepIndex == instructions.size - 1) {
-            stopVoiceRecognition()
-        }
+        val currentInstruction = instructions.getOrElse(currentStepIndex) { "" }
+        textViewCookingInstruction.text = currentInstruction
+        textViewStepIndicator.text = "Step ${currentStepIndex + 1} of ${instructions.size}"
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        mediaPlayer.release()
-        if (::textToSpeech.isInitialized) {
-            textToSpeech.stop()
-            speechRecognizer.destroy()
-            textToSpeech.shutdown()
-
-        }
+    private fun onTimerClick(view: View) {
+        val isVisible = timerLayout.visibility == View.VISIBLE
+        timerLayout.visibility = if (isVisible) View.GONE else View.VISIBLE
     }
 }

@@ -91,6 +91,14 @@
             android:background="@drawable/button_background" />
     </LinearLayout>
 
+    <Button
+        android:id="@+id/finish_cooking_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Finish Cooking"
+        android:visibility="gone"
+        android:layout_gravity="center"
+        android:layout_marginTop="16dp" />
     <LinearLayout
         android:id="@+id/footer_navbar"
         android:layout_width="match_parent"
