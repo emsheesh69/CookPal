@@ -1,16 +1,5 @@
 import java.util.Properties
 
-val localPropertiesFile = rootProject.file("local.properties")
-var openApiKey = ""
-
-if (localPropertiesFile.exists()) {
-    val properties = Properties()
-    localPropertiesFile.inputStream().use { stream ->
-        properties.load(stream)
-    }
-    openApiKey = properties.getProperty("OPENAI_API_KEY") ?: ""
-}
-
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
@@ -35,8 +24,18 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
+
         // Load the OpenAI API key from local.properties
-        buildConfigField("String", "OPENAI_API_KEY", "\"${project.findProperty("OPENAI_API_KEY") ?: ""}\"")
+        val localPropertiesFile = rootProject.file("local.properties")
+        val openApiKey = if (localPropertiesFile.exists()) {
+            Properties().apply {
+                load(localPropertiesFile.inputStream()) // Now recognized
+            }.getProperty("OPENAI_API_KEY") ?: ""
+        } else {
+            ""
+        }
+
+        buildConfigField("String", "OPENAI_API_KEY", "\"$openApiKey\"")
     }
 
     buildTypes {
@@ -51,12 +50,15 @@ android {
             isMinifyEnabled = false
         }
     }
-
     packagingOptions {
-        exclude("META-INF/DEPENDENCIES")
-        exclude("META-INF/LICENSE")
-        exclude("META-INF/LICENSE.txt")
-        exclude("META-INF/NOTICE")
+        resources {
+            excludes += setOf(
+                "META-INF/DEPENDENCIES",
+                "META-INF/LICENSE",
+                "META-INF/LICENSE.txt",
+                "META-INF/NOTICE"
+            )
+        }
     }
 
     compileOptions {
