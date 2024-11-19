@@ -1,5 +1,6 @@
 package com.example.cookpal
 
+import android.app.NotificationManager
 import android.media.MediaPlayer
 import android.os.Bundle
 import android.os.CountDownTimer
@@ -18,6 +19,11 @@ import android.speech.SpeechRecognizer
 import android.speech.RecognizerIntent
 import android.content.Intent
 import android.speech.RecognitionListener
+import android.content.Context
+import android.os.Build
+import android.app.NotificationChannel
+import android.app.Notification
+import androidx.core.app.NotificationCompat
 
 class CookingActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
@@ -40,11 +46,30 @@ class CookingActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private lateinit var speechRecognizer: SpeechRecognizer
     private val REQUEST_CODE_SPEECH_INPUT = 100
     private var isListening = false
+    private val CHANNEL_ID = "timer_channel" // Channel ID for the notification
+    private lateinit var notificationManager: NotificationManager //  // Initialize notification manager
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_cooking)
+
+        // Initialize notification manager
+        notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+        // Create notification channel for Android Oreo and above
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                CHANNEL_ID,
+                "Timer Notifications",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Channel for timer notifications"
+            }
+            notificationManager.createNotificationChannel(channel)
+        }
+
+
         mediaPlayer = MediaPlayer.create(this, R.raw.alarm)
 
         textViewCookingInstruction = findViewById(R.id.cooking_instruction)
@@ -258,8 +283,24 @@ class CookingActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private fun playAlarmSound() {
         if (!mediaPlayer.isPlaying) {
             mediaPlayer.start()
+            showTimerFinishedNotification() // Show notification when timer finishes
         }
     }
+
+    private fun showTimerFinishedNotification() {
+        // Create the notification
+        val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_timer) // Replace with your icon
+            .setContentTitle("Timer Finished")
+            .setContentText("Your timer is finished.")
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true) // Automatically dismiss notification when clicked
+            .build()
+
+        // Show the notification
+        notificationManager.notify(1, notification)
+    }
+
 
     private fun stopTimer() {
         timer?.cancel()
@@ -296,6 +337,7 @@ class CookingActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
         if (currentStepIndex == instructions.size - 1) {
             stopVoiceRecognition()
+
         }
     }
 
@@ -309,4 +351,5 @@ class CookingActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
         }
     }
+
 }

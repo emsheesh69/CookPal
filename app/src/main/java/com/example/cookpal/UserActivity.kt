@@ -23,6 +23,10 @@ class UserActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            window.navigationBarColor = ContextCompat.getColor(this, R.color.black) // Replace with your color
+            window.isNavigationBarContrastEnforced = true // Ensures contrast with buttons
+        }
         setContentView(R.layout.activity_user)
         navDiscover = findViewById(R.id.nav_discover)
         navIngredients = findViewById(R.id.nav_ingredients)
