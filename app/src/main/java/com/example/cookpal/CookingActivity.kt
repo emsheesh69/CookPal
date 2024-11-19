@@ -347,9 +347,7 @@ class CookingActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             stopVoiceRecognition()
 
         }
-        val currentInstruction = instructions.getOrElse(currentStepIndex) { "" }
-        textViewCookingInstruction.text = currentInstruction
-        textViewStepIndicator.text = "Step ${currentStepIndex + 1} of ${instructions.size}"
+
     }
 
     private fun onTimerClick(view: View) {
