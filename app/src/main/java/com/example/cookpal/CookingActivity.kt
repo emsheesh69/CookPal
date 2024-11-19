@@ -347,7 +347,14 @@ class CookingActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             stopVoiceRecognition()
 
         }
+        textViewCookingInstruction.text = currentInstruction
+        textViewStepIndicator.text = "Step ${currentStepIndex + 1} of ${instructions.size}"
 
+        if (currentStepIndex == instructions.size - 1) {
+            finishCookingButton.visibility = View.VISIBLE
+        } else {
+            finishCookingButton.visibility = View.GONE
+        }
     }
 
     private fun onTimerClick(view: View) {
