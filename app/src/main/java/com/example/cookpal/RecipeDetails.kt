@@ -88,21 +88,19 @@ class RecipeDetails : AppCompatActivity() {
             val summarySentences = fullSummary?.split(". ")?.take(2)?.joinToString(". ") + "."
             textViewMealSummary.text = Html.fromHtml(summarySentences, Html.FROM_HTML_MODE_LEGACY)
 
-            Picasso.get().load(response.image).into(imageViewMealImage)
+           Picasso.get().load(response.image).into(imageViewMealImage)
 
-            // Display all instructions if available
             if (!response.analyzedInstructions.isNullOrEmpty()) {
                 val steps = response.analyzedInstructions[0].steps
                 instructions = ArrayList(steps.map { it.step ?: "No instruction available" })
 
-                // Display instructions in the TextView
-                textViewMealInstructions.text = instructions.joinToString("\n\n") // Joining each step with a new line
+                textViewMealInstructions.text = instructions.joinToString("\n\n")
             } else {
                 textViewMealInstructions.text = "Instructions not available"
             }
 
             recyclerMealIngredients.setHasFixedSize(true)
-            recyclerMealIngredients.layoutManager = LinearLayoutManager(this@RecipeDetails, LinearLayoutManager.HORIZONTAL, false)
+            recyclerMealIngredients.layoutManager = LinearLayoutManager(this@RecipeDetails, LinearLayoutManager.VERTICAL, false)
             val ingredientsAdapter = IngredientsAdapter(this@RecipeDetails, response.extendedIngredients)
             recyclerMealIngredients.adapter = ingredientsAdapter
         }
@@ -137,7 +135,7 @@ class RecipeDetails : AppCompatActivity() {
         }
 
         findViewById<LinearLayout>(R.id.nav_settings).setOnClickListener {
-            // startActivity(Intent(this, SettingsActivity::class.java))
+             startActivity(Intent(this, UserPreference::class.java))
         }
     }
 }
