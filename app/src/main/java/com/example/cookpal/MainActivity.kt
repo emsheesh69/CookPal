@@ -3,6 +3,7 @@ package com.example.cookpal
 import RandomRecipeAdapter
 import android.app.ProgressDialog
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -22,7 +23,12 @@ import com.example.cookpal.adapters.PopularRecipeAdapter
 import com.example.cookpal.listeners.ClickedRecipeListener
 import com.example.cookpal.listeners.ComplexSearchListener
 import com.example.cookpal.listeners.RandomRecipeResponseListener
-
+import android.Manifest
+import androidx.appcompat.app.AlertDialog
+import android.content.pm.PackageManager
+import androidx.core.app.ActivityCompat
+import android.net.Uri
+import android.provider.Settings
 
 class MainActivity : AppCompatActivity(), ClickedRecipeListener {
 
@@ -33,18 +39,35 @@ class MainActivity : AppCompatActivity(), ClickedRecipeListener {
     private lateinit var spinner: Spinner
     private val tags: MutableList<String> = mutableListOf()
     private lateinit var searchView: SearchView
-
     private lateinit var navDiscover: LinearLayout
     private lateinit var navIngredients: LinearLayout
     private lateinit var navVoiceCommand: LinearLayout
     private lateinit var navSettings: LinearLayout
+    private val REQUEST_CODE_RECORD_AUDIO = 1
+    private val REQUEST_CODE_POST_NOTIFICATIONS = 2
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
         dialog = ProgressDialog(this)
+        dialog.setMessage("Checking Permissions...")  // Optionally set a message
+        dialog.show()  // Show the dialog as soon as onCreate is called.
 
+
+        // Check and request microphone permission
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
+            != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this,
+                arrayOf(Manifest.permission.RECORD_AUDIO), REQUEST_CODE_RECORD_AUDIO)
+        }
+
+        // Check and request notification permission (for Android 13+)
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+            != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this,
+                arrayOf(Manifest.permission.POST_NOTIFICATIONS), REQUEST_CODE_POST_NOTIFICATIONS)
+        }
 ////        spinner = findViewById(R.id.spinner)
 ////        val arrayAdapter: ArrayAdapter<CharSequence> = ArrayAdapter.createFromResource(
 ////            this,
@@ -124,6 +147,55 @@ class MainActivity : AppCompatActivity(), ClickedRecipeListener {
         }
         setHighlightedTab(navDiscover)
     }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+
+        dialog.dismiss()  // Dismiss the dialog after permission request handling
+
+        when (requestCode) {
+            REQUEST_CODE_RECORD_AUDIO -> {
+                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    Toast.makeText(this, "Microphone permission granted", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this, "Microphone permission denied", Toast.LENGTH_SHORT).show()
+                    // Show the dialog asking to go to settings
+                    showPermissionDeniedDialog()
+                }
+            }
+            REQUEST_CODE_POST_NOTIFICATIONS -> {
+                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    Toast.makeText(this, "Notification permission granted", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this, "Notification permission denied", Toast.LENGTH_SHORT).show()
+                    // Show the dialog asking to go to settings
+                    showPermissionDeniedDialog()
+                }
+            }
+        }
+    }
+
+    private fun showPermissionDeniedDialog() {
+        val builder = AlertDialog.Builder(this)
+        builder.setMessage("This app requires the requested permissions to work properly. Please go to settings and grant the permissions.")
+            .setCancelable(false)
+            .setPositiveButton("Go to Settings") { dialog, id ->
+                // Redirect the user to the app's settings
+                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                val uri = Uri.fromParts("package", packageName, null)
+                intent.data = uri
+                startActivity(intent)
+            }
+            .setNegativeButton("Cancel") { dialog, id ->
+                // Close the dialog
+                dialog.dismiss()
+            }
+        builder.create().show()
+    }
+
+
+
+
 
     private fun setHighlightedTab(selectedTab: LinearLayout) {
         resetAllTabs()

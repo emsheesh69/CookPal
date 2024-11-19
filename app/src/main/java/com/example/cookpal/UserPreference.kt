@@ -6,10 +6,16 @@ import android.os.Bundle
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.google.firebase.auth.FirebaseAuth
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+
 
 
 class UserPreference : AppCompatActivity() {
@@ -22,9 +28,17 @@ class UserPreference : AppCompatActivity() {
     private lateinit var logout: TextView
     private lateinit var changePassword: TextView
     private lateinit var userNameTextView: TextView
+    private lateinit var notificationsTextView: TextView
+    private val REQUEST_CODE_POST_NOTIFICATIONS = 1
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            window.navigationBarColor = ContextCompat.getColor(this, R.color.black) // Replace with your color
+            window.isNavigationBarContrastEnforced = true // Ensures contrast with buttons
+        }
         setContentView(R.layout.activity_user_preference)
         navDiscover = findViewById(R.id.nav_discover)
         navIngredients = findViewById(R.id.nav_ingredients)
@@ -35,9 +49,17 @@ class UserPreference : AppCompatActivity() {
         tabPreferences = findViewById(R.id.tab_preferences)
         tabActivity = findViewById(R.id.tab_activity)
         userNameTextView = findViewById(R.id.userName)
+        notificationsTextView = findViewById(R.id.notifications)
+
 
         displayUserEmail()
 
+
+        // Set a click listener on the TextView
+        notificationsTextView.setOnClickListener {
+            // Show dialog to enable or disable notifications
+            showNotificationDialog()
+        }
         tabPreferences.setOnClickListener {
             setTab(tabPreferences)
             // Redirect to the Preferences screen
@@ -101,6 +123,57 @@ class UserPreference : AppCompatActivity() {
         } else {
             // If no user is signed in, show a default message
             userNameTextView.text = "Guest"
+        }
+    }
+
+    private fun showNotificationDialog() {
+        val builder = AlertDialog.Builder(this)
+        builder.setTitle("Notification Settings")
+            .setMessage("Would you like to enable or disable notifications?")
+            .setCancelable(false)
+            .setPositiveButton("Enable") { dialog, id ->
+                // Request notification permission if on Android 13+ (API 33 and above)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    if (ContextCompat.checkSelfPermission(
+                            this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
+                        // Permission is already granted, update UI
+                        notificationsTextView.text = "Notifications\nEnabled"
+                        Toast.makeText(this, "Notifications Enabled", Toast.LENGTH_SHORT).show()
+                    } else {
+                        // Request permission
+                        ActivityCompat.requestPermissions(
+                            this,
+                            arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                            REQUEST_CODE_POST_NOTIFICATIONS
+                        )
+                    }
+                } else {
+                    // On older versions, assume permissions are granted by default
+                    notificationsTextView.text = "Notifications\nEnabled"
+                    Toast.makeText(this, "Notifications Enabled", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("Disable") { dialog, id ->
+                // Disable notifications, update the UI
+                notificationsTextView.text = "Notifications\nDisabled"
+                Toast.makeText(this, "Notifications Disabled", Toast.LENGTH_SHORT).show()
+            }
+            .create()
+            .show()
+    }
+
+
+    // Handle permission result for enabling notifications
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+
+        if (requestCode == REQUEST_CODE_POST_NOTIFICATIONS) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                notificationsTextView.text = "Notifications\nEnabled"
+                Toast.makeText(this, "Notifications Enabled", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(this, "Notification permission denied", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
