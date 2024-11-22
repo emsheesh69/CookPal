@@ -8,6 +8,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
+import android.text.SpannableString
+import android.text.style.UnderlineSpan
 import android.util.Log
 import android.widget.Button
 import android.widget.EditText
@@ -15,22 +17,18 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import androidx.appcompat.app.AlertDialog
-import com.example.cookpal.MainActivity
-import com.example.cookpal.R
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
-
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 
 
 class MyIngredientsActivity : AppCompatActivity() {
@@ -66,12 +64,42 @@ class MyIngredientsActivity : AppCompatActivity() {
     private val ingredientsCollection = "user_ingredients"
 
 
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_my_ingredients)
 
         // Log the OpenAI API key to check if it's loaded correctly
         Log.d("ChatGPT", "OpenAI API Key: ${BuildConfig.OPENAI_API_KEY}")
+
+
+        val textClearList: TextView = findViewById(R.id.textClearList)
+
+        // Create a SpannableString to apply underline
+        val content = SpannableString(textClearList.text)
+        content.setSpan(UnderlineSpan(), 0, content.length, 0)
+
+        // Set the modified text to the TextView
+        textClearList.text = content
+
+        textClearList.setOnClickListener {
+            if (ingredientsList.isNotEmpty()) {
+                AlertDialog.Builder(this)
+                    .setTitle("Clear Ingredients")
+                    .setMessage("Are you sure you want to clear all ingredients?")
+                    .setPositiveButton("Yes") { _, _ ->
+                        ingredientsList.clear()
+                        ingredientsAdapter.notifyDataSetChanged()
+                        saveIngredients()
+                        Toast.makeText(this, "Ingredients list cleared.", Toast.LENGTH_SHORT).show()
+                    }
+                    .setNegativeButton("No", null)
+                    .show()
+            } else {
+                Toast.makeText(this, "The ingredients list is already empty.", Toast.LENGTH_SHORT).show()
+            }
+        }
 
         // Initialize Shared Preferences
         val auth = FirebaseAuth.getInstance()

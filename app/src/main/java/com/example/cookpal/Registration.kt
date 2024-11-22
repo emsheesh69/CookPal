@@ -15,7 +15,6 @@ import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import com.google.firebase.FirebaseApp
-import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
@@ -25,7 +24,7 @@ import java.util.*
 import kotlin.random.Random
 
 class Registration : AppCompatActivity() {
-    private lateinit var auth: FirebaseAuth
+
     lateinit var database: FirebaseDatabase
     private lateinit var sendGridHelper: SendGridHelper
     private lateinit var generatedOtp: String // Used to store the OTP for email verification
@@ -38,14 +37,11 @@ class Registration : AppCompatActivity() {
         // Initialize Firebase Realtime Database
         FirebaseApp.initializeApp(this)
         database = FirebaseDatabase.getInstance()
-        auth = FirebaseAuth.getInstance()
 
 
-        // Check if the user is already logged in
-        if (auth.currentUser != null) {
-            // User is already signed in, redirect to MainActivity
-            navigateToMainActivity()
-        }
+
+
+
 
         val loginBtn = findViewById<TextView>(R.id.loginTextView)
         loginBtn.setOnClickListener {
@@ -60,6 +56,8 @@ class Registration : AppCompatActivity() {
         val registerBtn = findViewById<Button>(R.id.registerButton)
         val termsCheckBox = findViewById<CheckBox>(R.id.termsCheckBox)
         val termsTextView = findViewById<TextView>(R.id.termsAndConditionsTextView)
+
+
 
         // Open the Terms and Conditions popup when clicked
         termsTextView.setOnClickListener {
@@ -97,7 +95,7 @@ class Registration : AppCompatActivity() {
         confirmPassInput: EditText
     ) {
         // Email Validation
-        val emailPattern = "[a-zA-Z0-9._-]+@[a-z]+\\.+[a-z]+"
+        val emailPattern = "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}"
         if (email.isEmpty()) {
             emailInput.error = "Enter Email"
             return
@@ -191,13 +189,7 @@ class Registration : AppCompatActivity() {
             })
     }
 
-    // Function to navigate to MainActivity
-    private fun navigateToMainActivity() {
-        val intent = Intent(this, MainActivity::class.java)
-        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-        startActivity(intent)
-        finish()
-    }
+
 
     // Function to send OTP using SendGrid
     private fun sendOtpToEmail(email: String, password: String) {

@@ -90,22 +90,39 @@
             android:textSize="18sp"
             android:textStyle="bold" />
 
-        <ImageView
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_gravity="center"
-            android:layout_marginTop="24dp"
-            app:tint="@color/white" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
+        <!-- RecyclerView for dynamic cooking history -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/cooking_history_list"
+            android:layout_width="match_parent"
+            android:layout_height="200dp"
             android:layout_marginTop="16dp"
-            android:text="You haven't cooked any recipes yet"
-            android:textColor="@color/white"
-            android:textSize="14sp" />
+            android:visibility="visible" />
+
+        <!-- Empty state message -->
+        <LinearLayout
+            android:id="@+id/empty_cooking_history"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <ImageView
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                app:tint="@color/white" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="You haven't cooked any recipes yet"
+                android:textColor="@color/white"
+                android:textSize="14sp" />
+        </LinearLayout>
     </LinearLayout>
+
+
 
     <!-- Likes Section -->
     <LinearLayout
@@ -121,11 +138,24 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Likes"
+            android:text="Favorites"
             android:textColor="@color/white"
             android:textSize="18sp"
             android:textStyle="bold" />
 
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recycler_favorites"
+            android:layout_width="match_parent"
+            android:layout_height="200dp"
+            android:layout_marginTop="16dp"
+            android:visibility="visible" />
+        <LinearLayout
+            android:id="@+id/empty_likes_section"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:visibility="gone">
         <ImageView
             android:layout_width="48dp"
             android:layout_height="48dp"
@@ -138,9 +168,10 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center"
             android:layout_marginTop="16dp"
-            android:text="Rate your first recipe to see it here."
+            android:text="Add a recipe to your favorites to see it here."
             android:textColor="@color/white"
             android:textSize="14sp" />
+        </LinearLayout>
     </LinearLayout>
 
     <!-- Footer Navbar (Provided Code) -->

@@ -2,9 +2,11 @@ package com.example.cookpal
 
 import android.app.ProgressDialog
 import android.content.Intent
+import android.icu.text.SimpleDateFormat
 import android.os.Bundle
 import android.text.Html
 import android.widget.Button
+import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -16,11 +18,17 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.cookpal.Adapters.IngredientsAdapter
 import com.example.cookpal.Models.RecipeDetailsResponse
 import com.example.cookpal.listeners.RecipeDetailsListener
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.FirebaseDatabase
 import com.squareup.picasso.Picasso
+import java.util.Date
+import java.util.Locale
 
 class RecipeDetails : AppCompatActivity() {
 
     private var id: Int = 0
+    private var isFavorite = false
+    private lateinit var btnFavorite: ImageButton
     private lateinit var textViewMealName: TextView
     private lateinit var textViewMealSource: TextView
     private lateinit var textViewMealSummary: TextView
@@ -31,6 +39,7 @@ class RecipeDetails : AppCompatActivity() {
     private lateinit var textViewMealInstructions: TextView
     private lateinit var startCookingButton: Button
 
+    private val userId = FirebaseAuth.getInstance().currentUser?.uid
     private var instructions: ArrayList<String> = ArrayList()  // Store instructions here
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -44,6 +53,8 @@ class RecipeDetails : AppCompatActivity() {
         recyclerMealIngredients = findViewById(R.id.meal_ingredients)
         textViewMealInstructions = findViewById(R.id.meal_instructions)
         startCookingButton = findViewById(R.id.start_cooking_button)  // Initialize button
+        btnFavorite = findViewById(R.id.btn_favorite) // Adjust the ID according to your layout
+
 
         id = intent.getStringExtra("id")?.toIntOrNull() ?: 0
 
@@ -64,10 +75,15 @@ class RecipeDetails : AppCompatActivity() {
         }
 
         fetchRecipeDetails(id)
+        checkFavoriteStatus()
 
         // Set up button click listener
         startCookingButton.setOnClickListener {
             startCooking()
+        }
+
+        btnFavorite.setOnClickListener {
+            if (isFavorite) removeFromFavorites() else addToFavorites()
         }
 
         setupNavigationBar()
@@ -89,6 +105,7 @@ class RecipeDetails : AppCompatActivity() {
             textViewMealSummary.text = Html.fromHtml(summarySentences, Html.FROM_HTML_MODE_LEGACY)
 
            Picasso.get().load(response.image).into(imageViewMealImage)
+            imageViewMealImage.tag = response.image
 
             if (!response.analyzedInstructions.isNullOrEmpty()) {
                 val steps = response.analyzedInstructions[0].steps
@@ -111,9 +128,51 @@ class RecipeDetails : AppCompatActivity() {
         }
     }
 
+    private fun checkFavoriteStatus() {
+        val databaseRef = FirebaseDatabase.getInstance().getReference("users/$userId/Favorites")
+        databaseRef.child(id.toString()).get().addOnSuccessListener {
+            isFavorite = it.exists()
+            updateFavoriteButton()
+        }
+    }
+
+    private fun updateFavoriteButton() {
+        val icon = if (isFavorite) R.drawable.ic_fav_tick else R.drawable.ic_fav_untick
+        btnFavorite.setImageResource(icon)
+    }
+
+    private fun addToFavorites() {
+        val databaseRef = FirebaseDatabase.getInstance().getReference("users/$userId/Favorites")
+        val currentDate = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
+        val favorite = mapOf(
+            "id" to id,
+            "name" to textViewMealName.text.toString(),
+            "image" to (imageViewMealImage.tag as? String ?: ""),
+            "date" to currentDate
+        )
+
+        databaseRef.child(id.toString()).setValue(favorite).addOnSuccessListener {
+            Toast.makeText(this, "Added to Favorites", Toast.LENGTH_SHORT).show()
+            isFavorite = true
+            updateFavoriteButton()
+        }
+    }
+
+    private fun removeFromFavorites() {
+        val databaseRef = FirebaseDatabase.getInstance().getReference("users/$userId/Favorites")
+        databaseRef.child(id.toString()).removeValue().addOnSuccessListener {
+            Toast.makeText(this, "Removed from Favorites", Toast.LENGTH_SHORT).show()
+            isFavorite = false
+            updateFavoriteButton()
+        }
+    }
+
     private fun startCooking() {
         if (instructions.isNotEmpty()) {
             val intent = Intent(this@RecipeDetails, CookingActivity::class.java)
+            intent.putExtra("id", id) // Pass the recipe ID
+            intent.putExtra("name", textViewMealName.text.toString()) // Pass the recipe name
+            intent.putExtra("image", imageViewMealImage.tag as? String ?: "") // Pass the image URL
             intent.putStringArrayListExtra("instructions", instructions)  // Pass instructions to the next activity
             startActivity(intent)
         } else {

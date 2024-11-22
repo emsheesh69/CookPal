@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/alt_bg_gradient"
+    tools:context=".About">
+
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/abouttoolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="@android:color/transparent"
+        android:title="About CookPal"
+        android:titleTextColor="@android:color/white"
+        app:navigationIcon="@drawable/ic_back_button"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <ScrollView
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="8dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/abouttoolbar"
+        app:layout_constraintBottom_toBottomOf="parent"
+        android:paddingBottom="20dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <ImageView
+                android:id="@+id/logo"
+                android:layout_width="300dp"
+                android:layout_height="100dp"
+                android:layout_gravity="center"
+                android:src="@drawable/cookpal"
+                android:contentDescription="@string/app_name" />
+
+            <TextView
+                android:id="@+id/aboutContent"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="Welcome to CookPal, your cooking companion! CookPal is an innovative Android application designed to make cooking easier, more enjoyable, and hassle-free. By minimizing user-device interaction, CookPal helps you focus on creating delicious meals without interruptions."
+                android:textColor="@android:color/white"
+                android:textSize="16sp"
+                android:lineSpacingExtra="4dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="Key Features:"
+                android:textColor="@android:color/white"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="- Text-to-Speech Cooking Instructions"
+                android:textColor="@android:color/white"
+                android:textSize="16sp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="- Voice Command Navigation"
+                android:textColor="@android:color/white"
+                android:textSize="16sp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="- Built-in Timer for Cooking Management"
+                android:textColor="@android:color/white"
+                android:textSize="16sp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="- Ingredient-Based Recipe Suggestions"
+                android:textColor="@android:color/white"
+                android:textSize="16sp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="- Alternative Ingredient Suggestions"
+                android:textColor="@android:color/white"
+                android:textSize="16sp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="AI-Powered Recipe Generation:"
+                android:textColor="@android:color/white"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="CookPal leverages advanced AI technology using GPT-4 mini to provide personalized recipe suggestions based on the ingredients you have. The AI adapts recipes dynamically, offering alternative ingredients to suit your preferences or availability. With this feature, CookPal ensures you can always prepare meals tailored to your needs."
+                android:textColor="@android:color/white"
+                android:textSize="16sp"
+                android:lineSpacingExtra="4dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="Our recipes are sourced using the reliable and extensive Spoonacular API, providing a diverse collection of recipes to cater to both novice and experienced cooks alike."
+                android:textColor="@android:color/white"
+                android:textSize="16sp"
+                android:lineSpacingExtra="4dp" />
+
+            <TextView
+                android:id="@+id/apiLink"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Visit Spoonacular API"
+                android:textColor="@android:color/holo_blue_light"
+                android:textSize="16sp"
+                android:autoLink="web"
+                android:linksClickable="true"
+                android:layout_gravity="start"
+                android:textStyle="bold"
+                android:padding="8dp" />
+
+        </LinearLayout>
+    </ScrollView>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

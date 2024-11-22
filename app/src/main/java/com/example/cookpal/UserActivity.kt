@@ -1,17 +1,32 @@
 package com.example.cookpal
 
+
 import android.content.Intent
 import android.os.Bundle
+import android.view.View
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.example.cookpal.Adapters.CookingHistoryAdapter
+import com.example.cookpal.Adapters.FavoritesAdapter
+import com.example.cookpal.Models.FavModel
+import com.example.cookpal.Models.RecipeModel
+import com.example.cookpal.listeners.ClickedRecipeListener
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
 
 
-class UserActivity : AppCompatActivity() {
+class UserActivity : AppCompatActivity(), ClickedRecipeListener {
     private lateinit var navDiscover: LinearLayout
     private lateinit var navIngredients: LinearLayout
     private lateinit var navVoiceCommand: LinearLayout
@@ -19,6 +34,11 @@ class UserActivity : AppCompatActivity() {
     private lateinit var tabPreferences: TextView
     private lateinit var tabActivity: TextView
     private lateinit var userNameTextView: TextView
+    private lateinit var historyRecyclerView: RecyclerView
+    private lateinit var favRecyclerView: RecyclerView
+    private lateinit var historyAdapter: CookingHistoryAdapter
+    private lateinit var favoritesAdapter: FavoritesAdapter
+    private lateinit var database: DatabaseReference
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -35,6 +55,20 @@ class UserActivity : AppCompatActivity() {
         tabPreferences = findViewById(R.id.tab_preferences)
         tabActivity = findViewById(R.id.tab_activity)
         userNameTextView = findViewById(R.id.userName)
+        historyRecyclerView = findViewById(R.id.cooking_history_list)
+        favRecyclerView = findViewById(R.id.recycler_favorites)
+        historyRecyclerView.layoutManager = LinearLayoutManager(this)
+        favRecyclerView.layoutManager = LinearLayoutManager(this)
+
+        historyAdapter = CookingHistoryAdapter(this)
+        favoritesAdapter = FavoritesAdapter(this)
+
+        historyRecyclerView.adapter = historyAdapter
+        favRecyclerView .adapter = favoritesAdapter
+
+        fetchCookingHistory()
+
+        fetchFavorites()
 
         displayUserEmail()
 
@@ -77,6 +111,78 @@ class UserActivity : AppCompatActivity() {
         setTab(tabActivity)
         setHighlightedTab(navSettings)
     }
+
+    private fun fetchCookingHistory() {
+        val user = FirebaseAuth.getInstance().currentUser
+        val emptyStateLayout = findViewById<LinearLayout>(R.id.empty_cooking_history) // Find the empty state layout
+
+        if (user != null) {
+            database = FirebaseDatabase.getInstance().getReference("users/${user.uid}/Cooking History")
+            database.addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val historyList = ArrayList<RecipeModel>()
+                    for (data in snapshot.children) {
+                        val recipe = data.getValue(RecipeModel::class.java)
+                        if (recipe != null) {
+                            historyList.add(recipe)
+                        }
+                    }
+                    if (historyList.isEmpty()) {
+                        // Show empty state
+                        emptyStateLayout.visibility = View.VISIBLE
+                        historyRecyclerView.visibility = View.GONE
+                    } else {
+                        // Show cooking history
+                        emptyStateLayout.visibility = View.GONE
+                        historyRecyclerView.visibility = View.VISIBLE
+                        historyAdapter.setRecipes(historyList)
+                    }
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    Toast.makeText(this@UserActivity, "Failed to fetch history.", Toast.LENGTH_SHORT).show()
+                }
+            })
+        } else {
+            Toast.makeText(this, "User not logged in.", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun fetchFavorites() {
+        val user = FirebaseAuth.getInstance().currentUser
+        val emptyStateLayout = findViewById<LinearLayout>(R.id.empty_likes_section)
+        if (user != null) {
+            database = FirebaseDatabase.getInstance().getReference("users/${user.uid}/Favorites")
+            database.orderByChild("timestamp").addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val favoritesList = ArrayList<FavModel>()
+                    for (data in snapshot.children) {
+                        val recipe = data.getValue(FavModel::class.java)
+                        if (recipe != null) {
+                            favoritesList.add(recipe)
+                        }
+                    }
+                    if (favoritesList.isEmpty()) {
+                        // Show empty state
+                        emptyStateLayout.visibility = View.VISIBLE
+                        favRecyclerView.visibility = View.GONE
+                    } else {
+                        // Show cooking history
+                        emptyStateLayout.visibility = View.GONE
+                        favRecyclerView.visibility = View.VISIBLE
+                        favoritesAdapter.setFavorites(favoritesList)
+                    }
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    Toast.makeText(this@UserActivity, "Failed to fetch favorites.", Toast.LENGTH_SHORT).show()
+                }
+            })
+        } else {
+            Toast.makeText(this, "User not logged in.", Toast.LENGTH_SHORT).show()
+        }
+    }
+
 
     private fun displayUserEmail() {
         // Get the current Firebase user
@@ -129,5 +235,11 @@ class UserActivity : AppCompatActivity() {
         for (tab in tabs) {
             tab.setTextColor(ContextCompat.getColor(this, R.color.white))
         }
+    }
+
+    override fun onRecipeClicked(id: String) {
+        val intent = Intent(this, RecipeDetails::class.java)
+        intent.putExtra("id", id)
+        startActivity(intent)
     }
 }

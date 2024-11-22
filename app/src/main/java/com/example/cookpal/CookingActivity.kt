@@ -1,5 +1,6 @@
 package com.example.cookpal
 
+import android.app.AlertDialog
 import android.app.NotificationManager
 import android.media.MediaPlayer
 import android.os.Bundle
@@ -23,8 +24,13 @@ import android.content.Context
 import android.os.Build
 import android.app.NotificationChannel
 import android.app.Notification
+import android.icu.text.SimpleDateFormat
 import androidx.core.app.NotificationCompat
 import android.speech.tts.UtteranceProgressListener
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.FirebaseDatabase
+import java.util.Date
+
 
 class CookingActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
@@ -52,7 +58,10 @@ class CookingActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private lateinit var notificationManager: NotificationManager //  // Initialize notification manager
     private lateinit var recognitionIntent: Intent
     private var isRecognitionEnabled = false
-
+    private var recipeId: Int = 0
+    private lateinit var recipeName: String
+    private lateinit var recipeImage: String
+    private lateinit var Historyinstructions: ArrayList<String>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -60,6 +69,12 @@ class CookingActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
         // Initialize notification manager
         notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+        // Assuming recipe data is passed from RecipeDetails
+        recipeId = intent.getIntExtra("id", 0)
+        recipeName = intent.getStringExtra("name") ?: "Unknown Recipe"
+        recipeImage = intent.getStringExtra("image") ?: ""
+        instructions = intent.getStringArrayListExtra("instructions") ?: ArrayList()
 
         // Create notification channel for Android Oreo and above
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -118,6 +133,7 @@ class CookingActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         }
         finishCookingButton.setOnClickListener {
             Toast.makeText(this, "Cooking completed!", Toast.LENGTH_SHORT).show()
+            saveCookingHistory()
             finish()
         }
 
@@ -134,6 +150,36 @@ class CookingActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             onTimerClick(it)
         }
     }
+
+
+    private fun saveCookingHistory() {
+        val user = FirebaseAuth.getInstance().currentUser
+        if (user != null) {
+            val cookingHistoryRef = FirebaseDatabase.getInstance()
+                .getReference("users/${user.uid}/Cooking History")
+
+            val cookingDate = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date())
+
+            val recipeData = mapOf(
+                "id" to recipeId,
+                "name" to recipeName,
+                "image" to recipeImage,
+                "date" to cookingDate
+            )
+
+            cookingHistoryRef.push().setValue(recipeData)
+                .addOnSuccessListener {
+                    Toast.makeText(this, "Cooking history saved!", Toast.LENGTH_SHORT).show()
+                    finish()
+                }
+                .addOnFailureListener {
+                    Toast.makeText(this, "Failed to save cooking history.", Toast.LENGTH_SHORT).show()
+                }
+        } else {
+            Toast.makeText(this, "User not logged in.", Toast.LENGTH_SHORT).show()
+        }
+    }
+
 
     private fun stopVoiceRecognition() {
         if (isListening) {
@@ -293,14 +339,44 @@ class CookingActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
                     override fun onFinish() {
                         timerText.text = "00:00"
-                        mediaPlayer.start()
-                        Toast.makeText(applicationContext, "Timer finished!", Toast.LENGTH_SHORT).show()
+                        onTimerFinish()
                     }
                 }.start()
             }
         } else {
             Toast.makeText(this, "Please enter valid numbers for minutes and seconds.", Toast.LENGTH_SHORT).show()
         }
+    }
+
+    private fun onTimerFinish() {
+        mediaPlayer.start()
+        showTimerFinishedNotification()
+        Toast.makeText(applicationContext, "Timer finished!", Toast.LENGTH_SHORT).show()
+
+        // Handler to wait for 1 minute
+        Handler(mainLooper).postDelayed({
+            // Check if the user is still in the app
+            if (isFinishing) return@postDelayed  // If the activity is finishing, exit
+
+            // Show the pop-up dialog asking if they want to continue
+            showContinueDialog()
+        }, 60000) // 1 minute delay
+    }
+
+    private fun showContinueDialog() {
+        val builder = AlertDialog.Builder(this)
+        builder.setMessage("Do you still want to continue?")
+            .setPositiveButton("Yes") { dialog, _ ->
+                dialog.dismiss()  // Dismiss the dialog if "Yes" is selected
+            }
+            .setNegativeButton("No") { dialog, _ ->
+                dialog.dismiss()
+                // Redirect to MainActivity if "No" is selected
+                val intent = Intent(this, MainActivity::class.java)
+                startActivity(intent)
+                finish()
+            }
+        builder.create().show()
     }
 
     private fun playAlarmSound() {
@@ -311,18 +387,26 @@ class CookingActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     }
 
     private fun showTimerFinishedNotification() {
-        // Create the notification
-        val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_timer) // Replace with your icon
-            .setContentTitle("Timer Finished")
-            .setContentText("Your timer is finished.")
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setAutoCancel(true) // Automatically dismiss notification when clicked
-            .build()
+        // Check if notifications are enabled
+        val sharedPreferences = getSharedPreferences("user_prefs", MODE_PRIVATE)
+        val notificationsEnabled = sharedPreferences.getBoolean("notifications_enabled", false)
 
-        // Show the notification
-        notificationManager.notify(1, notification)
+        // Only show the notification if it is enabled
+        if (notificationsEnabled) {
+            // Create the notification
+            val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
+                .setSmallIcon(R.drawable.ic_timer) // Replace with your icon
+                .setContentTitle("Timer Finished")
+                .setContentText("Your timer is finished.")
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setAutoCancel(true) // Automatically dismiss notification when clicked
+                .build()
+
+            // Show the notification
+            notificationManager.notify(1, notification)
+        }
     }
+
 
 
     private fun stopTimer() {
@@ -347,8 +431,6 @@ class CookingActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             stopVoiceRecognition()
 
         }
-
-        val currentInstruction = instructions.getOrElse(currentStepIndex) { "" }
         textViewCookingInstruction.text = currentInstruction
         textViewStepIndicator.text = "Step ${currentStepIndex + 1} of ${instructions.size}"
 

@@ -97,7 +97,12 @@
         android:layout_height="wrap_content"
         android:text="Finish Cooking"
         android:visibility="gone"
-        android:layout_gravity="center"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true"
+        android:padding="10dp"
+        android:textStyle="bold"
+        android:background="@drawable/button_background"
+        android:textColor="@android:color/white"
         android:layout_marginTop="16dp" />
     <LinearLayout
         android:id="@+id/footer_navbar"

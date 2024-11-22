@@ -51,8 +51,8 @@ class MainActivity : AppCompatActivity(), ClickedRecipeListener {
         setContentView(R.layout.activity_main)
 
         dialog = ProgressDialog(this)
-        dialog.setMessage("Checking Permissions...")  // Optionally set a message
-        dialog.show()  // Show the dialog as soon as onCreate is called.
+        dialog.show()
+         // Show the dialog as soon as onCreate is called.
 
 
         // Check and request microphone permission
@@ -62,12 +62,7 @@ class MainActivity : AppCompatActivity(), ClickedRecipeListener {
                 arrayOf(Manifest.permission.RECORD_AUDIO), REQUEST_CODE_RECORD_AUDIO)
         }
 
-        // Check and request notification permission (for Android 13+)
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
-            != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this,
-                arrayOf(Manifest.permission.POST_NOTIFICATIONS), REQUEST_CODE_POST_NOTIFICATIONS)
-        }
+
 ////        spinner = findViewById(R.id.spinner)
 ////        val arrayAdapter: ArrayAdapter<CharSequence> = ArrayAdapter.createFromResource(
 ////            this,
@@ -159,15 +154,6 @@ class MainActivity : AppCompatActivity(), ClickedRecipeListener {
                     Toast.makeText(this, "Microphone permission granted", Toast.LENGTH_SHORT).show()
                 } else {
                     Toast.makeText(this, "Microphone permission denied", Toast.LENGTH_SHORT).show()
-                    // Show the dialog asking to go to settings
-                    showPermissionDeniedDialog()
-                }
-            }
-            REQUEST_CODE_POST_NOTIFICATIONS -> {
-                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    Toast.makeText(this, "Notification permission granted", Toast.LENGTH_SHORT).show()
-                } else {
-                    Toast.makeText(this, "Notification permission denied", Toast.LENGTH_SHORT).show()
                     // Show the dialog asking to go to settings
                     showPermissionDeniedDialog()
                 }
