@@ -3,5 +3,10 @@ data class OpenAIResponse(
 )
 
 data class Choice(
-    val text: String
+    val message: Message
+)
+
+data class Message(
+    val role: String,
+    val content: String
 )

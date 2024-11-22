@@ -4,6 +4,7 @@ import MyIngredientsAdapter
 import OpenAIRequest
 import OpenAIResponse
 import OpenAIService
+import RequestMessage
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
@@ -22,8 +23,13 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.appcompat.app.AlertDialog
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.gson.Gson
+
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -170,14 +176,6 @@ class MyIngredientsActivity : AppCompatActivity() {
 
         setHighlightedTab(navIngredients)
 
-//        val retrofit = Retrofit.Builder()
-//            .baseUrl("https://api.openai.com/")
-//            .addConverterFactory(GsonConverterFactory.create())
-//            .build()
-//            .create(OpenAIService::class.java)
-//
-//        val apiService = retrofit.create(OpenAIService::class.java)
-
     }
 
 
@@ -272,25 +270,65 @@ class MyIngredientsActivity : AppCompatActivity() {
         saveIngredients()
     }
 
-    private fun getRecipeSuggestion() {
-        // Join ingredients into a single prompt
-        val prompt = "Suggest a recipe using these ingredients: ${ingredientsList.joinToString(", ")}. Provide detailed cooking instructions."
 
-        // Create the API request
-        val openAIRequest = OpenAIRequest(prompt = prompt)
+
+    private fun getRecipeSuggestion() {
+        // Log to debug the current state of ingredients
+        Log.d("ChatGPT", "Ingredients: ${ingredientsList.joinToString(", ")}")
+
+        // Create a unique key for caching based on the ingredients list
+        val ingredientsKey = ingredientsList.joinToString(",").hashCode().toString()
+
+        // Check if the recipe exists in the cache
+        val cachedRecipe = getCachedRecipe(ingredientsKey)
+        if (cachedRecipe != null) {
+            // Use the cached recipe
+            Log.d("ChatGPT", "Using cached recipe.")
+            showRecipeSuggestion(cachedRecipe)
+            return
+        }
+
+        // Cache doesn't exist; proceed with the API request
+        // Create messages for the ChatGPT API
+        val messages = listOf(
+            RequestMessage("system", "You are a professional chef providing clear, concise, and structured recipes."),
+            RequestMessage("user", "Provide a recipe using these ingredients: ${ingredientsList.joinToString(", ")}. Include a brief description of the dish (two sentences max), followed by the ingredients list, and detailed step-by-step cooking instructions. Strictly avoid conversational language or pleasantries. Focus only on the recipe content.")
+        )
+
+        // Construct the OpenAIRequest object
+        val openAIRequest = OpenAIRequest(
+            model = "gpt-4o-mini-2024-07-18",
+            messages = messages,
+            max_tokens = 2048,
+            temperature = 0.6,
+            top_p = 0.9
+        )
+
+        val gson = Gson()
+        Log.d("ChatGPT", "Request JSON: ${gson.toJson(openAIRequest)}")
+
+
 
         // Send the API request
         apiService.getRecipeSuggestions("Bearer ${BuildConfig.OPENAI_API_KEY}", openAIRequest)
             .enqueue(object : Callback<OpenAIResponse> {
             override fun onResponse(call: Call<OpenAIResponse>, response: Response<OpenAIResponse>) {
                 if (response.isSuccessful) {
-                    val recipeSuggestion = response.body()?.choices?.firstOrNull()?.text
-                    // Display the suggestion (e.g., in a TextView or AlertDialog)
-                    showRecipeSuggestion(recipeSuggestion ?: "No recipe found.")
-                    Log.d("ChatGPT", "Recipe suggestion: $recipeSuggestion")
+                    val recipeSuggestion = response.body()?.choices?.firstOrNull()?.message?.content
+                    if (recipeSuggestion != null) {
+                        // Save the recipe to the cache
+                        saveRecipeToCache(ingredientsKey, recipeSuggestion)
+                        // Display the recipe suggestion in an AlertDialog
+                        showRecipeSuggestion(recipeSuggestion)
+                    } else {
+                        Toast.makeText(this@MyIngredientsActivity, "No recipe found.", Toast.LENGTH_SHORT).show()
+                        Log.e("ChatGPT", "No content in response body.")
+                    }
                 } else {
+                    // Handle errors, such as malformed request
                     Toast.makeText(this@MyIngredientsActivity, "Failed to get recipe suggestion.", Toast.LENGTH_SHORT).show()
-                    Log.e("ChatGPT", "Failed to get response. Code: ${response.code()} Message: ${response.message()}")                }
+                    Log.e("ChatGPT", "Failed to get response. Code: ${response.code()} Message: ${response.message()}")
+                }
             }
 
             override fun onFailure(call: Call<OpenAIResponse>, t: Throwable) {
@@ -309,5 +347,14 @@ class MyIngredientsActivity : AppCompatActivity() {
         dialog.show()
     }
 
+    private fun saveRecipeToCache(key: String, recipe: String) {
+        val sharedPreferences = getSharedPreferences("RecipeCache", Context.MODE_PRIVATE)
+        sharedPreferences.edit().putString(key, recipe).apply()
+    }
+
+    private fun getCachedRecipe(key: String): String? {
+        val sharedPreferences = getSharedPreferences("RecipeCache", Context.MODE_PRIVATE)
+        return sharedPreferences.getString(key, null)
+    }
 
 }
