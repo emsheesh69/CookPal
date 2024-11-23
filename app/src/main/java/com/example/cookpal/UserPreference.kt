@@ -30,6 +30,7 @@ class UserPreference : AppCompatActivity() {
     private lateinit var changePassword: TextView
     private lateinit var userNameTextView: TextView
     private lateinit var notificationsTextView: TextView
+    private lateinit var languageTextView: TextView
     private lateinit var aboutTextView: TextView
     private val REQUEST_CODE_POST_NOTIFICATIONS = 1
 
@@ -52,6 +53,7 @@ class UserPreference : AppCompatActivity() {
         tabActivity = findViewById(R.id.tab_activity)
         userNameTextView = findViewById(R.id.userName)
         notificationsTextView = findViewById(R.id.notifications)
+        languageTextView = findViewById(R.id.language)
         aboutTextView = findViewById(R.id.about)
 
 
@@ -62,6 +64,11 @@ class UserPreference : AppCompatActivity() {
         notificationsTextView.setOnClickListener {
             // Show dialog to enable or disable notifications
             showNotificationDialog()
+        }
+
+
+        languageTextView.setOnClickListener{
+            showLanguageSelectionDialog()
         }
 
         aboutTextView.setOnClickListener{
@@ -169,6 +176,30 @@ class UserPreference : AppCompatActivity() {
             .show()
     }
 
+    private fun showLanguageSelectionDialog() {
+        val options = arrayOf("English", "Filipino")
+        val builder = AlertDialog.Builder(this)
+        builder.setTitle("Which language do you prefer in text-to-speech?")
+            .setItems(options) { _, which ->
+                // Update the languageTextView based on selection
+                val selectedLanguage = options[which]
+                languageTextView.text = "Language\n$selectedLanguage"
+
+                // Save the selected language in SharedPreferences
+                saveLanguagePreference(selectedLanguage)
+            }
+            .create()
+            .show()
+    }
+
+    private fun saveLanguagePreference(language: String) {
+        val sharedPreferences = getSharedPreferences("user_prefs", MODE_PRIVATE)
+        val editor = sharedPreferences.edit()
+        editor.putString("selected_language", language)
+        editor.apply()
+    }
+
+
     private fun redirectToAppSettings() {
         // Create an intent to open the app's settings page
         val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
@@ -196,6 +227,10 @@ class UserPreference : AppCompatActivity() {
         } else {
             notificationsTextView.text = "Notifications\nDisabled"
         }
+
+        // Load language preference
+        val selectedLanguage = sharedPreferences.getString("selected_language", "English") // Default to English
+        languageTextView.text = "Language\n$selectedLanguage"
     }
 
 
