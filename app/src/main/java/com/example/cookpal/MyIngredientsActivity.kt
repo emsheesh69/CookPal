@@ -26,6 +26,9 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.gson.Gson
+import org.json.JSONArray
+import org.json.JSONException
+import org.json.JSONObject
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.Call
@@ -311,94 +314,165 @@ class MyIngredientsActivity : AppCompatActivity() {
         // Log the current state of ingredients
         Log.d("ChatGPT", "Ingredients: ${ingredientsList.joinToString(", ")}")
 
+        // Preprocess ingredients before validation
+        val preprocessedIngredients = preprocessIngredients(ingredientsList)
+        Log.d("ChatGPT", "Preprocessed Ingredients: ${preprocessedIngredients.joinToString(", ")}")
+
         // Preprocessing stage: Limit the number of ingredients
         val maxIngredients = 15
         if (ingredientsList.size > maxIngredients) {
             val truncatedIngredients: MutableList<String> = ingredientsList.take(maxIngredients).toMutableList()
             notifyTruncatedIngredients(truncatedIngredients)
-            ingredientsList = truncatedIngredients // Now this assignment works as both are MutableList
+            ingredientsList = truncatedIngredients
         }
 
         // Validate Ingredients
-        validateIngredients(ingredientsList) { isValid, errorOrInvalidIngredients ->
+        validateIngredients(preprocessedIngredients) { isValid, refinedList, feedbackMessage, hasStrangeIngredients ->
             if (isValid) {
-                // Ingredients are valid; proceed with recipe suggestion
-                Log.d("ChatGPT", "All ingredients are valid. Proceeding with recipe generation.")
+//                ingredientsList = refinedList.toMutableList()
+//                showAlertDialog("Your CookPal's Feedback", feedbackMessage ?: "Ingredients look great!")
+//
+//                Log.d("ChatGPT", "Validated Ingredients: ${ingredientsList.joinToString(", ")}")
+//                // Ingredients are valid; proceed with recipe suggestion
+//                Log.d("ChatGPT", "All ingredients are valid. Proceeding with recipe generation.")
 
-                // Create a unique key for caching based on the ingredients list
-                val ingredientsKey = ingredientsList.joinToString(",").hashCode().toString()
+                val dialogBuilder = AlertDialog.Builder(this)
+                    .setTitle("Your CookPal's Feedback")
+                    .setMessage(feedbackMessage)
 
-                // Check if the recipe exists in the cache
-                val cachedRecipe = getCachedRecipe(ingredientsKey)
-                if (cachedRecipe != null) {
-                    // Use the cached recipe
-                    Log.d("ChatGPT", "Using cached recipe.")
-                    showRecipeSuggestion(cachedRecipe)
-                }
-
-                // Cache doesn't exist; proceed with the API request
-                val messages = listOf(
-                    RequestMessage("system", "You are a professional chef providing clear, concise, authentic as possible, and structured recipes. "),
-                    RequestMessage("user", "Provide a recipe using these ingredients: ${ingredientsList.joinToString(", ")}. Include a name for the dish, a brief description of the dish (1-2 sentences max), followed by the ingredients list, and detailed step-by-step cooking instructions. Strictly avoid conversational language or pleasantries. Focus only on the recipe content.")
-                )
-
-                makeOpenAIRequest(
-                    messages = messages,
-                    maxTokens = 2048,
-                    temperature = 0.7f,
-                    topP = 0.9f
-                ) { recipe ->
-                    if (recipe != null) {
-                        // Save the recipe to the cache
-                        saveRecipeToCache(ingredientsKey, recipe)
-                        showRecipeSuggestion(recipe)
-                    } else {
-                        showToast("Failed to get recipe suggestion.")
-                        Log.e("ChatGPT", "No content in response body.")
+                if (hasStrangeIngredients) {
+                    dialogBuilder.setNeutralButton("Creative Recipe with All Ingredients") { _, _ ->
+                        generateRecipe(preprocessedIngredients) // Full list, including strange ingredients
                     }
                 }
+
+                dialogBuilder
+                    .setPositiveButton("Proceed with Refined Ingredients") { _, _ ->
+                        generateRecipe(refinedList) // Refined list only
+                    }
+                    .setNegativeButton("Cancel") { dialog, _ ->
+                        dialog.dismiss()
+                    }
+                    .show()
+
             } else {
                 // Handle invalid ingredients
-                val errorMessage = "Invalid ingredients: $errorOrInvalidIngredients"
-                showToast("Invalid ingredients: $errorOrInvalidIngredients")
-                Log.e("ChatGPT", errorMessage)
-                showAlertDialog("Invalid Ingredients", errorMessage)
+                Log.e("ChatGPT", "errorMessageInvalidIngredients: $feedbackMessage")
+                showAlertDialog("Oops! That’s Not a Snack!", feedbackMessage ?: "Please correct your ingredients.")
             }
         }
     }
 
-    private fun validateIngredients(ingredients: List<String>, onValidationComplete: (Boolean, String?) -> Unit) {
+    private fun validateIngredients(ingredients: List<String>, callback: (Boolean, List<String>, String?, Boolean) -> Unit) {
         val preprocessedIngredients = preprocessIngredients(ingredients)
-        val truncatedIngredients = preprocessedIngredients.take(50)
+        val truncatedIngredients = preprocessedIngredients.take(10)
 
         Log.d("OpenAIRequest", "Ingredients to validate: ${truncatedIngredients.joinToString(", ")}")
-
         val messages = listOf(
-            RequestMessage("system", "You are a professional chef verifying ingredient validity that are used for cooking ."),
+            RequestMessage(
+                "system",
+                """
+                        You are a professional chef, culinary adviser, and data parser. Your role is to validate cooking ingredients and provide clear, actionable feedback. Respond strictly in JSON format.
+                    
+                        For each input:
+                        - Flag any non-ingredient entries such as sentences, questions, incomprehensible or irrelevant words as "invalidIngredients."
+                        - Exclude items that are illogical for cooking or unsuitable for recipes. Group these under "invalidIngredients."
+                        - Example response: {
+                            "refinedIngredients": ["chicken", "garlic"],
+                            "feedbackMessage": "Some items were removed for better synergy, like 'ice cream' and 'car keys.'",
+                            "invalidIngredients": ["laptop", "car keys"]
+                          }.
+                    
+                        Always respond in JSON format and avoid adding explanations outside the structure.
+                        """
+            ),
             RequestMessage(
                 "user",
-                "Verify if the following are valid cooking ingredients: ${truncatedIngredients.joinToString(", ")}. Respond only with a list of invalid ingredients, if any. If all are valid, respond with 'All ingredients are valid.'"
+                        """
+                        Validate the following ingredients for cooking: ${truncatedIngredients.joinToString(", ")}.
+                        Tasks:
+                        1. Identify and return a "refinedIngredients" list with logical, valid cooking ingredients. Remove any illogical or strange ingredients.
+                        2. Provide a "feedbackMessage" offering helpful and humorous comments based on the list. For example:
+                           - If less than 5 ingredients, suggest adding more.
+                           - If strange ingredients are present, mention and explain why they were removed.
+                        3. Mention if any ingredients are strictly invalid or unrecognized separately. Flag any entries that are:
+                           - Clearly non-ingredients (e.g., sentences, random questions, or unrelated words).
+                           - Illogical or unsuitable for cooking (e.g., "ice cream" for a savory recipe).
+                        Format the response strictly in JSON as shown:
+                        {
+                          "refinedIngredients": [list of valid ingredients],
+                          "feedbackMessage": "string with feedback for the user",
+                          "invalidIngredients": [list of invalid ingredients or unrecognized items, if any]
+                        }
+                        """.trimIndent()
             )
         )
 
         makeOpenAIRequest(
             messages = messages,
-            maxTokens = 100,
-            temperature = 0.0f,
-            topP = 1.0f
-        ) { result ->
-            val resultTrimmed = result?.trim() ?: ""
-            Log.d("validateIngredients", "API response: $resultTrimmed")
+            maxTokens = 2048,
+            temperature = 0.7f
+        ) { response ->
+            if (response != null) {
+                Log.d("OpenAIResponse", "Raw AI response: $response")
+                try {
+                    // Parse AI response
+                    val jsonResponse = JSONObject(response)
+                    // Extract from JSON
+                    val refinedIngredients = jsonResponse.optJSONArray("refinedIngredients")?.toList() ?: emptyList()
+                    val feedbackMessage = jsonResponse.optString("feedbackMessage", "No feedback provided.")
+                    val invalidIngredients = jsonResponse.optJSONArray("invalidIngredients")?.toList() ?: emptyList()
 
-            when {
-                resultTrimmed.contains("All ingredients are valid", ignoreCase = true) -> {
-                    onValidationComplete(true, null)
+                    val hasStrangeIngredients = refinedIngredients.size < truncatedIngredients.size
+
+                    // Handle
+                    if (refinedIngredients.isEmpty()) {
+                        Log.w("ChatGPT", "Refined ingredients are empty.")
+                        callback(false, emptyList(), "No valid ingredients found.", false)
+                    } else if (invalidIngredients.isNotEmpty()) {
+                        callback(false, refinedIngredients, "Invalid ingredients: ${invalidIngredients.joinToString(", ")}", hasStrangeIngredients)
+                    } else {
+                        callback(true, refinedIngredients, feedbackMessage, hasStrangeIngredients)
+                    }
+                } catch (e: JSONException) {
+                    Log.e("ChatGPT", "Error parsing AI response: ${e.message}")
+                    callback(false, emptyList(), "Failed to parse AI response.", false)
                 }
-                resultTrimmed.isNotBlank() -> {
-                    onValidationComplete(false, resultTrimmed)
-                }
-                else -> {
-                    onValidationComplete(false, "Error validating ingredients. No clear response from API.")
+            } else {
+                showToast("No response from your CookPal.")
+                Log.e("validateIngredients", "No response received from OpenAI.")
+                callback(false, emptyList(), "AI validation request failed.", false)
+            }
+        }
+    }
+
+    // Helper to convert JSONArray to List
+    private fun JSONArray.toList(): List<String> = List(length()) { getString(it) }
+
+    private fun generateRecipe(ingredients: List<String>) {
+        // Create a unique key for caching based on the ingredients list
+        val ingredientsKey = ingredients.joinToString(",").hashCode().toString()
+        // Check if the recipe exists in the cache
+        val cachedRecipe = getCachedRecipe(ingredientsKey)
+
+        if (cachedRecipe != null) {
+            // Use the cached recipe
+            Log.d("ChatGPT", "Using cached recipe.")
+            showRecipeSuggestion(cachedRecipe)
+        } else {
+            val messages = listOf(
+                RequestMessage("system", "You are a professional chef, providing clear, concise, and authentic recipes that are as structured and easy to follow as possible. Strictly avoid conversational language or pleasantries. Focus only on the recipe content."),
+                RequestMessage("user", "Provide a recipe using these ingredients: ${ingredients.joinToString(", ")}. Include a dish name, a brief description of the dish (1-2 sentences max), followed by the ingredients list, and detailed step-by-step cooking instructions.")
+            )
+
+            makeOpenAIRequest(messages, maxTokens = 2048, temperature = 0.7f, topP = 0.9f) { recipe ->
+                if (recipe != null) {
+                    // Save the recipe to the cache
+                    saveRecipeToCache(ingredientsKey, recipe)
+                    showRecipeSuggestion(recipe)
+                } else {
+                    showToast("Failed to generate a recipe.")
+                    Log.e("ChatGPT", "No content in response body.")
                 }
             }
         }
