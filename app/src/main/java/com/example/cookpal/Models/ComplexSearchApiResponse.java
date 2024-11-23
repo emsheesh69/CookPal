@@ -16,4 +16,5 @@ public class ComplexSearchApiResponse {
         public String image;
         public String imageType;
     }
+
 }

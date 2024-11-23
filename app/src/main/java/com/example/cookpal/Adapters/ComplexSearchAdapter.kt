@@ -8,7 +8,7 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
-import com.example.cookpal.Models.ComplexSearchApiResponse
+import com.example.cookpal.Models.Recipe
 import com.example.cookpal.R
 import com.example.cookpal.RecipeDetails
 import com.example.cookpal.listeners.ClickedRecipeListener
@@ -16,7 +16,7 @@ import com.squareup.picasso.Picasso
 
 class ComplexSearchAdapter(
     private val context: Context,
-    private val recipeList: List<ComplexSearchApiResponse.Recipe>,
+    private val recipeList: List<Recipe>,
     private val listener: ClickedRecipeListener
 ) : RecyclerView.Adapter<ComplexSearchAdapter.ComplexSearchViewHolder>() {
 

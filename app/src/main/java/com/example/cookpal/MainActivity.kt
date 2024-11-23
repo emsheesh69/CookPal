@@ -3,14 +3,8 @@ package com.example.cookpal
 import RandomRecipeAdapter
 import android.app.ProgressDialog
 import android.content.Intent
-import android.os.Build
 import android.os.Bundle
-import android.widget.ImageView
-import android.widget.LinearLayout
-import android.widget.SearchView
-import android.widget.Spinner
-import android.widget.TextView
-import android.widget.Toast
+import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.GridLayoutManager
@@ -29,20 +23,22 @@ import android.content.pm.PackageManager
 import androidx.core.app.ActivityCompat
 import android.net.Uri
 import android.provider.Settings
+import com.example.cookpal.Models.Recipe
 
 class MainActivity : AppCompatActivity(), ClickedRecipeListener {
-
     private lateinit var dialog: ProgressDialog
     private lateinit var manager: RequestManager
     private lateinit var recyclerRecommended: RecyclerView
     private lateinit var recyclerPopular: RecyclerView
-    private lateinit var spinner: Spinner
-    private val tags: MutableList<String> = mutableListOf()
     private lateinit var searchView: SearchView
+    private lateinit var buttonFilter: ImageView
     private lateinit var navDiscover: LinearLayout
     private lateinit var navIngredients: LinearLayout
     private lateinit var navVoiceCommand: LinearLayout
     private lateinit var navSettings: LinearLayout
+
+    private val selectedTags: MutableList<String> = mutableListOf()
+    private var currentSearchQuery: String = ""
     private val REQUEST_CODE_RECORD_AUDIO = 1
     private val REQUEST_CODE_POST_NOTIFICATIONS = 2
 
@@ -51,42 +47,32 @@ class MainActivity : AppCompatActivity(), ClickedRecipeListener {
         setContentView(R.layout.activity_main)
 
         dialog = ProgressDialog(this)
-        dialog.setMessage("Checking Permissions...")  // Optionally set a message
-        dialog.show()  // Show the dialog as soon as onCreate is called.
+        dialog.setMessage("Checking Permissions...")
+        dialog.show()
 
+        checkPermissions()
+        initializeViews()
+        setupSearchView()
+        setupNavigationTabs()
+        setupFilterButton()
+        loadInitialRecipes()
+    }
 
-        // Check and request microphone permission
+    private fun checkPermissions() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
             != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this,
                 arrayOf(Manifest.permission.RECORD_AUDIO), REQUEST_CODE_RECORD_AUDIO)
         }
 
-        // Check and request notification permission (for Android 13+)
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
             != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this,
                 arrayOf(Manifest.permission.POST_NOTIFICATIONS), REQUEST_CODE_POST_NOTIFICATIONS)
         }
-////        spinner = findViewById(R.id.spinner)
-////        val arrayAdapter: ArrayAdapter<CharSequence> = ArrayAdapter.createFromResource(
-////            this,
-////            R.array.tags,
-////            R.layout.spinner_text
-////        )
-//        spinner.adapter = arrayAdapter
-//        spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-//            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-//                tags.clear()
-//                val selectedTag = parent?.getItemAtPosition(position).toString()
-//                tags.add(selectedTag)
-//                manager.getRandomRecipes(randomRecipeResponseListener, tags)
-//            }
-//
-//            override fun onNothingSelected(parent: AdapterView<*>?) {}
-//        }
-//        arrayAdapter.setDropDownViewResource(R.layout.spinner_inner_text)
+    }
 
+    private fun initializeViews() {
         manager = RequestManager(this)
 
         recyclerRecommended = findViewById(R.id.recycler_recommended)
@@ -95,63 +81,163 @@ class MainActivity : AppCompatActivity(), ClickedRecipeListener {
 
         recyclerPopular = findViewById(R.id.recycler_popular)
         recyclerPopular.setHasFixedSize(true)
-        recyclerPopular.layoutManager = LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false)
-        val gridLayoutManager = GridLayoutManager(this, 2)
-        recyclerPopular.layoutManager = gridLayoutManager
+        recyclerPopular.layoutManager = GridLayoutManager(this, 2)
 
         searchView = findViewById(R.id.searchView_home)
-        searchView.setOnClickListener { searchView.isIconified = false }
-
-        searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
-            override fun onQueryTextSubmit(query: String?): Boolean {
-                query?.let {
-                    val titleMatch = it
-                    val excludeIngredients = listOf<String>()
-                    val includeIngredients = listOf<String>()
-                    val numberOfRecipes = 50
-                    manager.getComplexSearch(complexSearchListener, excludeIngredients, includeIngredients, numberOfRecipes, titleMatch)
-                    dialog.setMessage("Fetching recipes...")
-                    dialog.show()
-                }
-                return true
-            }
-
-            override fun onQueryTextChange(newText: String?): Boolean = true
-        })
-
-        manager.getRandomRecipes(randomRecipeResponseListener, tags)
+        buttonFilter = findViewById(R.id.button_filter)
 
         navDiscover = findViewById(R.id.nav_discover)
         navIngredients = findViewById(R.id.nav_ingredients)
         navVoiceCommand = findViewById(R.id.nav_voice_command)
         navSettings = findViewById(R.id.nav_settings)
+    }
 
+    private fun setupSearchView() {
+        searchView.setOnSearchClickListener {
+            val currentQuery = searchView.query.toString()
+            if (currentQuery.isNotEmpty()) {
+                performSearch(currentQuery, selectedTags)
+            }
+        }
+
+        searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+            override fun onQueryTextSubmit(query: String?): Boolean {
+                query?.let {
+                    if (it.isNotEmpty()) {
+                        currentSearchQuery = it
+                        performSearch(it, selectedTags)
+                        searchView.clearFocus()
+                    }
+                }
+                return true
+            }
+
+            override fun onQueryTextChange(newText: String?): Boolean {
+                currentSearchQuery = newText ?: ""
+                return true
+            }
+        })
+
+        searchView.setOnClickListener {
+            searchView.isIconified = false
+            val query = searchView.query.toString()
+            if (query.isNotEmpty()) {
+                performSearch(query, selectedTags)
+            }
+        }
+    }
+
+    private fun setupNavigationTabs() {
         navDiscover.setOnClickListener { setHighlightedTab(navDiscover) }
 
         navIngredients.setOnClickListener {
             setHighlightedTab(navIngredients)
-            val intent = Intent(this, MyIngredientsActivity::class.java)
-            startActivity(intent)
+            startActivity(Intent(this, MyIngredientsActivity::class.java))
         }
 
         navVoiceCommand.setOnClickListener {
             setHighlightedTab(navVoiceCommand)
-            val intent = Intent(this, VoiceCommandActivity::class.java)
-            startActivity(intent)
+            startActivity(Intent(this, VoiceCommandActivity::class.java))
         }
 
         navSettings.setOnClickListener {
             setHighlightedTab(navSettings)
-            val intent = Intent(this, UserPreference::class.java)
-            startActivity(intent)
+            startActivity(Intent(this, UserPreference::class.java))
         }
+
         setHighlightedTab(navDiscover)
+    }
+
+    private fun setupFilterButton() {
+        buttonFilter.setOnClickListener {
+            showFilterDialog()
+        }
+    }
+
+    private fun loadInitialRecipes() {
+        manager.getRandomRecipes(randomRecipeResponseListener, selectedTags)
+    }
+
+    private fun performSearch(query: String, tags: List<String> = listOf()) {
+        searchView.clearFocus()
+        dialog.setMessage("Fetching recipes...")
+        dialog.show()
+
+        var type: String? = null
+        var cuisine: String? = null
+        var diet: String? = null
+
+        tags.forEach { tag ->
+            when (tag.lowercase()) {
+                "appetizers", "dinner", "lunch", "breakfast" -> type = tag
+                "asian", "european", "african", "chinese", "japanese" -> cuisine = tag
+                "vegetarian", "vegan", "gluten free" -> diet = tag
+            }
+        }
+
+        manager.getComplexSearch(
+            complexSearchListener,
+            listOf(),
+            listOf(),
+            50,
+            query
+//            diet,
+//            type,
+//            cuisine
+        )
+
+        if (tags.isNotEmpty()) {
+            manager.getRandomRecipes(randomRecipeResponseListener, selectedTags)
+        }
+    }
+
+    private fun showFilterDialog() {
+        val dialogView = layoutInflater.inflate(R.layout.filter_layout, null)
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogView)
+            .create()
+
+        val checkBoxes = mapOf(
+            "appetizers" to dialogView.findViewById(R.id.checkbox_appetizers),
+            "dinner" to dialogView.findViewById(R.id.checkbox_dinner),
+            "lunch" to dialogView.findViewById(R.id.checkbox_lunch),
+            "breakfast" to dialogView.findViewById(R.id.checkbox_breakfast),
+            "vegetarian" to dialogView.findViewById(R.id.checkbox_vegetarian),
+            "gluten free" to dialogView.findViewById(R.id.checkbox_dairy_free),
+            "vegan" to dialogView.findViewById(R.id.checkbox_vegan),
+            "asian" to dialogView.findViewById(R.id.checkbox_asian),
+            "european" to dialogView.findViewById(R.id.checkbox_european),
+            "african" to dialogView.findViewById(R.id.checkbox_african),
+            "chinese" to dialogView.findViewById(R.id.checkbox_chinese),
+            "japanese" to dialogView.findViewById<CheckBox>(R.id.checkbox_japanese)
+        )
+
+        val buttonApplyFilter = dialogView.findViewById<Button>(R.id.btn_apply_filters)
+        val buttonClearFilter = dialogView.findViewById<Button>(R.id.btn_clear_filters)
+
+        buttonApplyFilter.setOnClickListener {
+            selectedTags.clear()
+            checkBoxes.forEach { (tag, checkBox) ->
+                if (checkBox.isChecked) selectedTags.add(tag)
+            }
+            performSearch(currentSearchQuery, selectedTags)
+            dialog.dismiss()
+        }
+
+        buttonClearFilter.setOnClickListener {
+            checkBoxes.values.forEach { it.isChecked = false }
+            selectedTags.clear()
+            performSearch(currentSearchQuery)
+            dialog.dismiss()
+        }
+
+        dialog.show()
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
 
-        dialog.dismiss()  // Dismiss the dialog after permission request handling
+        dialog.dismiss()
 
         when (requestCode) {
             REQUEST_CODE_RECORD_AUDIO -> {
@@ -159,7 +245,6 @@ class MainActivity : AppCompatActivity(), ClickedRecipeListener {
                     Toast.makeText(this, "Microphone permission granted", Toast.LENGTH_SHORT).show()
                 } else {
                     Toast.makeText(this, "Microphone permission denied", Toast.LENGTH_SHORT).show()
-                    // Show the dialog asking to go to settings
                     showPermissionDeniedDialog()
                 }
             }
@@ -168,7 +253,6 @@ class MainActivity : AppCompatActivity(), ClickedRecipeListener {
                     Toast.makeText(this, "Notification permission granted", Toast.LENGTH_SHORT).show()
                 } else {
                     Toast.makeText(this, "Notification permission denied", Toast.LENGTH_SHORT).show()
-                    // Show the dialog asking to go to settings
                     showPermissionDeniedDialog()
                 }
             }
@@ -176,44 +260,35 @@ class MainActivity : AppCompatActivity(), ClickedRecipeListener {
     }
 
     private fun showPermissionDeniedDialog() {
-        val builder = AlertDialog.Builder(this)
-        builder.setMessage("This app requires the requested permissions to work properly. Please go to settings and grant the permissions.")
+        AlertDialog.Builder(this)
+            .setMessage("This app requires the requested permissions to work properly. Please go to settings and grant the permissions.")
             .setCancelable(false)
-            .setPositiveButton("Go to Settings") { dialog, id ->
-                // Redirect the user to the app's settings
+            .setPositiveButton("Go to Settings") { _, _ ->
                 val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
                 val uri = Uri.fromParts("package", packageName, null)
                 intent.data = uri
                 startActivity(intent)
             }
-            .setNegativeButton("Cancel") { dialog, id ->
-                // Close the dialog
+            .setNegativeButton("Cancel") { dialog, _ ->
                 dialog.dismiss()
             }
-        builder.create().show()
+            .create()
+            .show()
     }
-
-
-
-
 
     private fun setHighlightedTab(selectedTab: LinearLayout) {
         resetAllTabs()
-
         val icon = selectedTab.getChildAt(0) as ImageView
         val text = selectedTab.getChildAt(1) as TextView
-
         icon.setColorFilter(ContextCompat.getColor(this, R.color.highlight_color))
         text.setTextColor(ContextCompat.getColor(this, R.color.highlight_color))
     }
 
     private fun resetAllTabs() {
         val tabs = listOf(navDiscover, navIngredients, navVoiceCommand, navSettings)
-
         for (tab in tabs) {
             val icon = tab.getChildAt(0) as ImageView
             val text = tab.getChildAt(1) as TextView
-
             icon.setColorFilter(ContextCompat.getColor(this, R.color.white))
             text.setTextColor(ContextCompat.getColor(this, R.color.white))
         }
@@ -229,9 +304,21 @@ class MainActivity : AppCompatActivity(), ClickedRecipeListener {
     private val complexSearchListener = object : ComplexSearchListener {
         override fun didFetch(response: ComplexSearchApiResponse, message: String) {
             dialog.dismiss()
-            response.results?.let {
-                val recommendedRecipes = it.take(25)
-                recyclerRecommended.adapter = ComplexSearchAdapter(this@MainActivity, recommendedRecipes,this@MainActivity)
+            response.results?.let { results ->
+                val recommendedRecipes = results.take(25).map { mapToRecipe(it) }
+                val popularRecipes = results.drop(25).take(25).map { mapToRecipe(it) }
+
+                recyclerRecommended.adapter = ComplexSearchAdapter(
+                    this@MainActivity,
+                    recommendedRecipes,
+                    this@MainActivity
+                )
+
+                recyclerPopular.adapter = PopularRecipeAdapter(
+                    this@MainActivity,
+                    popularRecipes,
+                    this@MainActivity
+                )
             }
         }
 
@@ -247,14 +334,33 @@ class MainActivity : AppCompatActivity(), ClickedRecipeListener {
             response.recipes?.let {
                 val recommendedRecipes = it.take(25)
                 val popularRecipes = it.drop(25)
-                recyclerRecommended.adapter = RandomRecipeAdapter(this@MainActivity, recommendedRecipes, tags, this@MainActivity)
-                recyclerPopular.adapter = PopularRecipeAdapter(this@MainActivity, popularRecipes, this@MainActivity)
+                recyclerRecommended.adapter = RandomRecipeAdapter(
+                    this@MainActivity,
+                    recommendedRecipes,
+                    selectedTags,
+                    this@MainActivity
+                )
+                recyclerPopular.adapter = PopularRecipeAdapter(
+                    this@MainActivity,
+                    popularRecipes,
+                    this@MainActivity
+                )
             }
         }
 
         override fun didError(message: String) {
             dialog.dismiss()
             Toast.makeText(this@MainActivity, message, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun mapToRecipe(complexRecipe: ComplexSearchApiResponse.Recipe): Recipe {
+        return Recipe().apply {
+            id = complexRecipe.id
+            title = complexRecipe.title
+            image = complexRecipe.image
+            imageType = complexRecipe.imageType
+
         }
     }
 }

@@ -90,6 +90,8 @@ dependencies {
     implementation (libs.material.v190)
     androidTestImplementation(libs.androidx.espresso.core)
     implementation(libs.retrofit.v2110)
+    implementation (libs.androidx.core.ktx.v170)
+    implementation (libs.androidx.appcompat.v141)
     implementation(libs.converter.gson.v2110)
     implementation (libs.firebase.auth.v2110)
     implementation (libs.firebase.database.v2030)
