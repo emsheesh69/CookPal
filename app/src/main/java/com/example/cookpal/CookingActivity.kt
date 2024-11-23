@@ -6,7 +6,6 @@ import android.media.MediaPlayer
 import android.os.Bundle
 import android.os.CountDownTimer
 import android.os.Handler
-import android.speech.tts.TextToSpeech
 import android.util.Log
 import android.view.View
 import android.widget.Button
@@ -29,10 +28,15 @@ import androidx.core.app.NotificationCompat
 import android.speech.tts.UtteranceProgressListener
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
+import org.json.JSONObject
+import java.io.File
+import java.io.FileOutputStream
+import java.net.HttpURLConnection
+import java.net.URL
 import java.util.Date
 
 
-class CookingActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
+class CookingActivity : AppCompatActivity() {
 
     private lateinit var textViewCookingInstruction: TextView
     private lateinit var textViewStepIndicator: TextView
@@ -48,8 +52,7 @@ class CookingActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private lateinit var instructions: List<String>
     private var timer: CountDownTimer? = null
     private var timeLeftInMillis: Long = 60000
-    private lateinit var mediaPlayer: MediaPlayer
-    private lateinit var textToSpeech: TextToSpeech
+    private var mediaPlayer: MediaPlayer? = null
     private var isTtsInitialized = false
     private lateinit var speechRecognizer: SpeechRecognizer
     private val REQUEST_CODE_SPEECH_INPUT = 100
@@ -62,10 +65,16 @@ class CookingActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private lateinit var recipeName: String
     private lateinit var recipeImage: String
     private lateinit var Historyinstructions: ArrayList<String>
+    private lateinit var selectedLanguage: String
+    private val apiKey = "AIzaSyBy9rxbUYggvtsDVovUGFz-cGeY2Ttaowo"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_cooking)
+
+        val sharedPreferences = getSharedPreferences("user_prefs", MODE_PRIVATE)
+        selectedLanguage = sharedPreferences.getString("selected_language", "English") ?: "English"
+
 
         // Initialize notification manager
         notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -111,7 +120,7 @@ class CookingActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         }
         setupVoiceCommandListener()
 
-        textToSpeech = TextToSpeech(this, this)
+
         updateInstructionView()
 
         nextButton.setOnClickListener {
@@ -151,6 +160,50 @@ class CookingActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         }
     }
 
+    private fun translateText(input: String, targetLanguage: String, callback: (String) -> Unit) {
+        // Google Translate API URL
+        val url = "https://translation.googleapis.com/language/translate/v2"
+
+        // Translation API request payload
+        val requestBody = """
+        {
+            "q": "$input",
+            "target": "$targetLanguage",
+            "format": "text"
+        }
+    """.trimIndent()
+
+        // Asynchronous HTTP request
+        Thread {
+            try {
+                val connection = (URL("$url?key=$apiKey").openConnection() as HttpURLConnection).apply {
+                    requestMethod = "POST"
+                    doOutput = true
+                    setRequestProperty("Content-Type", "application/json")
+                    outputStream.write(requestBody.toByteArray())
+                }
+
+                val responseCode = connection.responseCode
+                if (responseCode == 200) {
+                    val response = connection.inputStream.bufferedReader().readText()
+                    val translatedText = JSONObject(response)
+                        .getJSONObject("data")
+                        .getJSONArray("translations")
+                        .getJSONObject(0)
+                        .getString("translatedText")
+
+                    // Invoke the callback with the translated text
+                    runOnUiThread { callback(translatedText) }
+                } else {
+                    Log.e("Translation", "Failed with response code: $responseCode")
+                    runOnUiThread { callback(input) } // Fallback to original text
+                }
+            } catch (e: Exception) {
+                Log.e("Translation", "Error: ${e.message}")
+                runOnUiThread { callback(input) } // Fallback to original text
+            }
+        }.start()
+    }
 
     private fun saveCookingHistory() {
         val user = FirebaseAuth.getInstance().currentUser
@@ -188,23 +241,8 @@ class CookingActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         }
     }
 
-    override fun onInit(status: Int) {
-        if (status == TextToSpeech.SUCCESS) {
-            val result = textToSpeech.setLanguage(Locale.US)
-            if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
-                Log.e("TTS", "Language not supported")
-            } else {
-                isTtsInitialized = true
-                if (instructions.isNotEmpty()) {
-                    Handler(mainLooper).postDelayed({
-                        speakOut(instructions[currentStepIndex])
-                    }, 3000)
-                }
-            }
-        } else {
-            Log.e("TTS", "Initialization failed")
-        }
-    }
+
+
 
     private fun setupVoiceCommandListener() {
         speechRecognizer.setRecognitionListener(object : RecognitionListener {
@@ -275,36 +313,97 @@ class CookingActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         }
     }
 
+
+
+    // Update the speakOut method to include translation
     private fun speakOut(text: String) {
-        val params = Bundle().apply {
-            putString(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, "UniqueID")
+        val targetLanguageCode = when (selectedLanguage) {
+            "Filipino" -> "tl"
+            "English" -> "en"
+            else -> "en" // Default to English if language is not recognized
         }
 
-        textToSpeech.speak(text, TextToSpeech.QUEUE_FLUSH, params, "UniqueID")
+        val voiceName = when (selectedLanguage) {
+            "Filipino" -> "fil-PH-Standard-C"
+            "English" -> "en-US-Standard-I"
+            else -> "en-US-Standard-I"
+        }
 
-        textToSpeech.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
-            override fun onStart(utteranceId: String?) {
-                // Disable voice recognition while TTS is speaking
-                runOnUiThread {
-                    disableVoiceRecognition()
+        Thread {
+            try {
+                val url = URL("https://texttospeech.googleapis.com/v1/text:synthesize?key=$apiKey")
+                val connection = (url.openConnection() as HttpURLConnection).apply {
+                    requestMethod = "POST"
+                    doOutput = true
+                    setRequestProperty("Content-Type", "application/json")
                 }
-            }
 
-            override fun onDone(utteranceId: String?) {
-                // Re-enable voice recognition after TTS finishes speaking
-                runOnUiThread {
-                    enableVoiceRecognition()
+                // JSON request body for Google Cloud TTS API
+                val requestBody = """
+                {
+                    "input": {
+                        "text": "$text"
+                    },
+                    "voice": {
+                        "languageCode": "$targetLanguageCode",
+                        "name": "$voiceName"
+                    },
+                    "audioConfig": {
+                        "audioEncoding": "LINEAR16"
+                    }
                 }
-            }
+            """.trimIndent()
 
-            override fun onError(utteranceId: String?) {
-                runOnUiThread {
-                    Toast.makeText(this@CookingActivity, "Error in TTS", Toast.LENGTH_SHORT).show()
-                    enableVoiceRecognition()
+                connection.outputStream.write(requestBody.toByteArray())
+                val responseCode = connection.responseCode
+
+                if (responseCode == 200) {
+                    val response = connection.inputStream.bufferedReader().readText()
+                    val audioContent = JSONObject(response).getString("audioContent")
+                    val decodedAudio = android.util.Base64.decode(audioContent, android.util.Base64.DEFAULT)
+
+                    // Play the audio
+                    playAudio(decodedAudio)
+                } else {
+                    Log.e("TTS API", "Failed to synthesize speech: $responseCode")
                 }
+            } catch (e: Exception) {
+                Log.e("TTS API", "Error in synthesizing speech: ${e.message}")
             }
-        })
+        }.start()
     }
+
+    private fun playAudio(audioData: ByteArray) {
+        try {
+            // Stop and release the existing MediaPlayer instance if it's already playing
+            mediaPlayer?.run {
+                if (isPlaying) stop()
+                release()
+            }
+
+            // Create a new MediaPlayer instance
+            val tempFile = File.createTempFile("tts_audio", ".wav", cacheDir)
+            val fos = FileOutputStream(tempFile)
+            fos.write(audioData)
+            fos.close()
+
+            mediaPlayer = MediaPlayer().apply {
+                setDataSource(tempFile.absolutePath)
+                prepare()
+                start()
+            }
+
+            mediaPlayer?.setOnCompletionListener {
+                mediaPlayer?.release()
+                mediaPlayer = null
+            }
+        } catch (e: Exception) {
+            Log.e("TTS Audio", "Error in playing audio: ${e.message}")
+        }
+    }
+
+
+
 
     private fun disableVoiceRecognition() {
         if (isRecognitionEnabled) {
@@ -349,7 +448,7 @@ class CookingActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     }
 
     private fun onTimerFinish() {
-        mediaPlayer.start()
+        mediaPlayer?.start()
         showTimerFinishedNotification()
         Toast.makeText(applicationContext, "Timer finished!", Toast.LENGTH_SHORT).show()
 
@@ -379,12 +478,7 @@ class CookingActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         builder.create().show()
     }
 
-    private fun playAlarmSound() {
-        if (!mediaPlayer.isPlaying) {
-            mediaPlayer.start()
-            showTimerFinishedNotification() // Show notification when timer finishes
-        }
-    }
+
 
     private fun showTimerFinishedNotification() {
         // Check if notifications are enabled
@@ -418,28 +512,31 @@ class CookingActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private fun updateInstructionView() {
         val currentInstruction = instructions[currentStepIndex]
 
-        if (instructions.isNotEmpty()) {
+        // Stop any ongoing audio playback
+        mediaPlayer?.run {
+            if (isPlaying) stop()
+            release()
+            mediaPlayer = null
+        }
+
+        if (selectedLanguage == "Filipino") {
+            translateText(currentInstruction, "tl") { translatedText ->
+                textViewCookingInstruction.text = translatedText
+                textViewStepIndicator.text = "Step ${currentStepIndex + 1} / ${instructions.size}"
+                speakOut(translatedText)
+            }
+        } else {
             textViewCookingInstruction.text = currentInstruction
             textViewStepIndicator.text = "Step ${currentStepIndex + 1} / ${instructions.size}"
-            prevButton.isEnabled = currentStepIndex > 0
-            nextButton.isEnabled = currentStepIndex < instructions.size - 1
+            speakOut(currentInstruction)
         }
 
-        speakOut(currentInstruction)
-
-        if (currentStepIndex == instructions.size - 1) {
-            stopVoiceRecognition()
-
-        }
-        textViewCookingInstruction.text = currentInstruction
-        textViewStepIndicator.text = "Step ${currentStepIndex + 1} of ${instructions.size}"
-
-        if (currentStepIndex == instructions.size - 1) {
-            finishCookingButton.visibility = View.VISIBLE
-        } else {
-            finishCookingButton.visibility = View.GONE
-        }
+        prevButton.isEnabled = currentStepIndex > 0
+        nextButton.isEnabled = currentStepIndex < instructions.size - 1
+        finishCookingButton.visibility =
+            if (currentStepIndex == instructions.size - 1) View.VISIBLE else View.GONE
     }
+
 
     private fun onTimerClick(view: View) {
         val isVisible = timerLayout.visibility == View.VISIBLE

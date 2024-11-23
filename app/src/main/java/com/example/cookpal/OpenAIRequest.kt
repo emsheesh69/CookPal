@@ -2,8 +2,8 @@ data class OpenAIRequest(
     val model: String,
     val messages: List<RequestMessage>,
     val max_tokens: Int,
-    val temperature: Double,
-    val top_p: Double
+    val temperature: Float,
+    val top_p: Float
 )
 
 data class RequestMessage(
