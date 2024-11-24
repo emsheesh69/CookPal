@@ -1,6 +1,12 @@
 data class OpenAIRequest(
-    val model: String = "gpt-4o-mini",
-    val prompt: String,
-    val max_tokens: Int = 800,
-    val temperature: Double = 0.7
+    val model: String,
+    val messages: List<RequestMessage>,
+    val max_tokens: Int,
+    val temperature: Float,
+    val top_p: Float
+)
+
+data class RequestMessage(
+    val role: String,
+    val content: String
 )

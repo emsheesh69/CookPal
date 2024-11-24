@@ -94,11 +94,19 @@ class VerifyReg : AppCompatActivity() {
             if (task.isSuccessful) {
                 val userId = auth.currentUser?.uid
                 userId?.let {
-                    // Store email in Realtime Database under 'users' node
+                    // Store email in Firebase Realtime Database
                     database.reference.child("users").child(userId).child("email").setValue(email)
                         .addOnSuccessListener {
                             Toast.makeText(this, "Registration successful", Toast.LENGTH_SHORT).show()
-                            startActivity(Intent(this, Login::class.java))
+
+                            // Log the user out to ensure they are redirected to LoginActivity
+                            auth.signOut()
+
+                            // After successful registration, navigate to LoginActivity
+                            val loginIntent = Intent(this, Login::class.java)
+                            loginIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                            startActivity(loginIntent)
+                            finish()  // Close VerifyReg activity to prevent the user from going back
                         }
                         .addOnFailureListener { e ->
                             Toast.makeText(this, "Failed to store user data: ${e.message}", Toast.LENGTH_SHORT).show()
@@ -109,4 +117,7 @@ class VerifyReg : AppCompatActivity() {
             }
         }
     }
+
+
+
 }

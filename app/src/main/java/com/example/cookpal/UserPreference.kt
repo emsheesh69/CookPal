@@ -14,8 +14,9 @@ import androidx.core.content.ContextCompat
 import com.google.firebase.auth.FirebaseAuth
 import android.Manifest
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
-
+import android.provider.Settings
 
 
 class UserPreference : AppCompatActivity() {
@@ -29,6 +30,8 @@ class UserPreference : AppCompatActivity() {
     private lateinit var changePassword: TextView
     private lateinit var userNameTextView: TextView
     private lateinit var notificationsTextView: TextView
+    private lateinit var languageTextView: TextView
+    private lateinit var aboutTextView: TextView
     private val REQUEST_CODE_POST_NOTIFICATIONS = 1
 
 
@@ -50,6 +53,8 @@ class UserPreference : AppCompatActivity() {
         tabActivity = findViewById(R.id.tab_activity)
         userNameTextView = findViewById(R.id.userName)
         notificationsTextView = findViewById(R.id.notifications)
+        languageTextView = findViewById(R.id.language)
+        aboutTextView = findViewById(R.id.about)
 
 
         displayUserEmail()
@@ -59,6 +64,15 @@ class UserPreference : AppCompatActivity() {
         notificationsTextView.setOnClickListener {
             // Show dialog to enable or disable notifications
             showNotificationDialog()
+        }
+
+
+        languageTextView.setOnClickListener{
+            showLanguageSelectionDialog()
+        }
+
+        aboutTextView.setOnClickListener{
+            startActivity(Intent(this, About::class.java))
         }
         tabPreferences.setOnClickListener {
             setTab(tabPreferences)
@@ -139,28 +153,86 @@ class UserPreference : AppCompatActivity() {
                         // Permission is already granted, update UI
                         notificationsTextView.text = "Notifications\nEnabled"
                         Toast.makeText(this, "Notifications Enabled", Toast.LENGTH_SHORT).show()
+                        saveNotificationPreference(true)  // Save preference
                     } else {
-                        // Request permission
-                        ActivityCompat.requestPermissions(
-                            this,
-                            arrayOf(Manifest.permission.POST_NOTIFICATIONS),
-                            REQUEST_CODE_POST_NOTIFICATIONS
-                        )
+                        // Permission not granted, redirect user to app settings to enable notifications
+                        Toast.makeText(this, "Please enable notification permission in the settings.", Toast.LENGTH_SHORT).show()
+                        redirectToAppSettings()
                     }
                 } else {
                     // On older versions, assume permissions are granted by default
                     notificationsTextView.text = "Notifications\nEnabled"
                     Toast.makeText(this, "Notifications Enabled", Toast.LENGTH_SHORT).show()
+                    saveNotificationPreference(true)  // Save preference
                 }
             }
             .setNegativeButton("Disable") { dialog, id ->
                 // Disable notifications, update the UI
                 notificationsTextView.text = "Notifications\nDisabled"
                 Toast.makeText(this, "Notifications Disabled", Toast.LENGTH_SHORT).show()
+                saveNotificationPreference(false)  // Save preference
             }
             .create()
             .show()
     }
+
+    private fun showLanguageSelectionDialog() {
+        val options = arrayOf("English", "Filipino")
+        val builder = AlertDialog.Builder(this)
+        builder.setTitle("Which language do you prefer in text-to-speech?")
+            .setItems(options) { _, which ->
+                // Update the languageTextView based on selection
+                val selectedLanguage = options[which]
+                languageTextView.text = "Language\n$selectedLanguage"
+
+                // Save the selected language in SharedPreferences
+                saveLanguagePreference(selectedLanguage)
+            }
+            .create()
+            .show()
+    }
+
+    private fun saveLanguagePreference(language: String) {
+        val sharedPreferences = getSharedPreferences("user_prefs", MODE_PRIVATE)
+        val editor = sharedPreferences.edit()
+        editor.putString("selected_language", language)
+        editor.apply()
+    }
+
+
+    private fun redirectToAppSettings() {
+        // Create an intent to open the app's settings page
+        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+        val uri: Uri = Uri.fromParts("package", packageName, null)
+        intent.data = uri
+        startActivity(intent)
+    }
+
+
+    private fun saveNotificationPreference(isEnabled: Boolean) {
+        val sharedPreferences = getSharedPreferences("user_prefs", MODE_PRIVATE)
+        val editor = sharedPreferences.edit()
+        editor.putBoolean("notifications_enabled", isEnabled)
+        editor.apply()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Load the notification preference from SharedPreferences
+        val sharedPreferences = getSharedPreferences("user_prefs", MODE_PRIVATE)
+        val notificationsEnabled = sharedPreferences.getBoolean("notifications_enabled", false) // Default to false (disabled)
+
+        if (notificationsEnabled) {
+            notificationsTextView.text = "Notifications\nEnabled"
+        } else {
+            notificationsTextView.text = "Notifications\nDisabled"
+        }
+
+        // Load language preference
+        val selectedLanguage = sharedPreferences.getString("selected_language", "English") // Default to English
+        languageTextView.text = "Language\n$selectedLanguage"
+    }
+
 
 
     // Handle permission result for enabling notifications

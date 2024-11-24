@@ -111,17 +111,36 @@
                     android:textColor="@android:color/white"
                     android:layout_margin="8dp" />
             </LinearLayout>
-            <Button
-                android:id="@+id/start_cooking_button"
+            <LinearLayout
+                android:id="@+id/action_buttons"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Start Cooking"
-                android:textSize="25sp"
                 android:layout_marginTop="16dp"
                 android:layout_marginBottom="16dp"
-                android:padding="12dp"
-                android:background="@drawable/rounded_button"
-                android:textColor="@android:color/white" />
+                android:gravity="center"
+                android:orientation="horizontal"
+                android:layout_centerHorizontal="true">
+
+                <Button
+                    android:id="@+id/start_cooking_button"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Start Cooking"
+                    android:textSize="25sp"
+                    android:padding="12dp"
+                    android:background="@drawable/rounded_button"
+                    android:textColor="@android:color/white" />
+
+                <ImageButton
+                    android:id="@+id/btn_favorite"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:src="@drawable/ic_fav_untick"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    app:tint="@color/white"
+                    android:layout_marginStart="16dp"
+                     />
+            </LinearLayout>
 
         </LinearLayout>
     </ScrollView>

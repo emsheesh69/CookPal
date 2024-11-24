@@ -4,10 +4,13 @@ import MyIngredientsAdapter
 import OpenAIRequest
 import OpenAIResponse
 import OpenAIService
+import RequestMessage
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
+import android.text.SpannableString
+import android.text.style.UnderlineSpan
 import android.util.Log
 import android.widget.Button
 import android.widget.EditText
@@ -15,23 +18,19 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import androidx.appcompat.app.AlertDialog
-import com.example.cookpal.MainActivity
-import com.example.cookpal.R
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-
+import com.google.gson.Gson
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
-
-
 
 class MyIngredientsActivity : AppCompatActivity() {
 
@@ -40,12 +39,18 @@ class MyIngredientsActivity : AppCompatActivity() {
     private lateinit var buttonGetRecipe: Button
     private lateinit var recyclerIngredients: RecyclerView
     private lateinit var ingredientsAdapter: MyIngredientsAdapter
-    private var ingredientsList: MutableList<String> = mutableListOf()
-
     private lateinit var navDiscover: LinearLayout
     private lateinit var navIngredients: LinearLayout
     private lateinit var navVoiceCommand: LinearLayout
     private lateinit var navSettings: LinearLayout
+    private lateinit var sharedPreferences: SharedPreferences
+
+    private var ingredientsList: MutableList<String> = mutableListOf()
+
+    private val prefsFileName = "MyIngredientsPrefs"
+    private val firestore = FirebaseFirestore.getInstance()
+    private val currentUser = FirebaseAuth.getInstance().currentUser
+    private val ingredientsCollection = "user_ingredients"
 
     // Initialize Retrofit and apiService directly as a property
     private val apiService: OpenAIService by lazy {
@@ -56,22 +61,40 @@ class MyIngredientsActivity : AppCompatActivity() {
             .create(OpenAIService::class.java)
     }
 
-//    private lateinit var apiService: OpenAIService
-
-    private lateinit var sharedPreferences: SharedPreferences
-    private val prefsFileName = "MyIngredientsPrefs"
-    private val ingredientsKey = "ingredientsList"
-    private val firestore = FirebaseFirestore.getInstance()
-    private val currentUser = FirebaseAuth.getInstance().currentUser
-    private val ingredientsCollection = "user_ingredients"
-
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_my_ingredients)
 
         // Log the OpenAI API key to check if it's loaded correctly
         Log.d("ChatGPT", "OpenAI API Key: ${BuildConfig.OPENAI_API_KEY}")
+
+
+        val textClearList: TextView = findViewById(R.id.textClearList)
+
+        // Create a SpannableString to apply underline
+        val content = SpannableString(textClearList.text)
+        content.setSpan(UnderlineSpan(), 0, content.length, 0)
+
+        // Set the modified text to the TextView
+        textClearList.text = content
+
+        textClearList.setOnClickListener {
+            if (ingredientsList.isNotEmpty()) {
+                AlertDialog.Builder(this)
+                    .setTitle("Clear Ingredients")
+                    .setMessage("Are you sure you want to clear all ingredients?")
+                    .setPositiveButton("Yes") { _, _ ->
+                        ingredientsList.clear()
+                        ingredientsAdapter.notifyDataSetChanged()
+                        saveIngredients()
+                        Toast.makeText(this, "Ingredients list cleared.", Toast.LENGTH_SHORT).show()
+                    }
+                    .setNegativeButton("No", null)
+                    .show()
+            } else {
+                Toast.makeText(this, "The ingredients list is already empty.", Toast.LENGTH_SHORT).show()
+            }
+        }
 
         // Initialize Shared Preferences
         val auth = FirebaseAuth.getInstance()
@@ -105,7 +128,7 @@ class MyIngredientsActivity : AppCompatActivity() {
                 editTextIngredient.text.clear()
                 saveIngredients()
             } else {
-                Toast.makeText(this, "Please enter an ingredient", Toast.LENGTH_SHORT).show()
+                showToast("Please enter an ingredient")
             }
         }
 
@@ -113,11 +136,9 @@ class MyIngredientsActivity : AppCompatActivity() {
             if (ingredientsList.isNotEmpty()) {
                 getRecipeSuggestion()
             } else {
-                Toast.makeText(this, "Please add ingredients first.", Toast.LENGTH_SHORT).show()
+                showToast("Please add ingredients first.")
             }
         }
-
-
 
         // Initialize Navigation Bar Views
         navDiscover = findViewById(R.id.nav_discover)
@@ -142,17 +163,7 @@ class MyIngredientsActivity : AppCompatActivity() {
 
         setHighlightedTab(navIngredients)
 
-//        val retrofit = Retrofit.Builder()
-//            .baseUrl("https://api.openai.com/")
-//            .addConverterFactory(GsonConverterFactory.create())
-//            .build()
-//            .create(OpenAIService::class.java)
-//
-//        val apiService = retrofit.create(OpenAIService::class.java)
-
     }
-
-
 
     private fun loadIngredients() {
         currentUser?.uid?.let { userId ->
@@ -167,7 +178,7 @@ class MyIngredientsActivity : AppCompatActivity() {
                     }
                 }
                 .addOnFailureListener { e ->
-                    Toast.makeText(this, "Failed to load ingredients: ${e.message}", Toast.LENGTH_SHORT).show()
+                    showToast("Failed to load ingredients: ${e.message}")
                 }
         }
     }
@@ -178,10 +189,9 @@ class MyIngredientsActivity : AppCompatActivity() {
             firestore.collection(ingredientsCollection).document(userId)
                 .set(ingredientsData)
                 .addOnSuccessListener {
-                    Toast.makeText(this, "Ingredients saved successfully", Toast.LENGTH_SHORT).show()
-                }
+                    showToast("Ingredients saved successfully")                }
                 .addOnFailureListener { e ->
-                    Toast.makeText(this, "Failed to save ingredients: ${e.message}", Toast.LENGTH_SHORT).show()
+                    showToast("Failed to save ingredients: ${e.message}")
                 }
         }
     }
@@ -228,12 +238,12 @@ class MyIngredientsActivity : AppCompatActivity() {
                         editTextIngredient.text.clear()
                         saveIngredients()
                     } else {
-                        Toast.makeText(this, "Please enter an ingredient", Toast.LENGTH_SHORT).show()
+                        showToast("Please enter an ingredients.")
                     }
                 }
                 saveIngredients()
             } else {
-                Toast.makeText(this, "Please enter an ingredient", Toast.LENGTH_SHORT).show()
+                showToast("Please enter an ingredients.")
             }
         }
     }
@@ -244,32 +254,154 @@ class MyIngredientsActivity : AppCompatActivity() {
         saveIngredients()
     }
 
-    private fun getRecipeSuggestion() {
-        // Join ingredients into a single prompt
-        val prompt = "Suggest a recipe using these ingredients: ${ingredientsList.joinToString(", ")}. Provide detailed cooking instructions."
+    private fun makeOpenAIRequest(
+        messages: List<RequestMessage>,
+        model: String = "gpt-4o-mini-2024-07-18",
+        maxTokens: Int = 100,
+        temperature: Float = 0.7f,
+        topP: Float = 0.9f,
+        onResponse: (String?) -> Unit
+    ) {
+        val openAIRequest = OpenAIRequest(
+            model = model,
+            messages = messages,
+            max_tokens = maxTokens,
+            temperature = temperature,
+            top_p = topP
+        )
 
-        // Create the API request
-        val openAIRequest = OpenAIRequest(prompt = prompt)
+        Log.d("OpenAIRequest", "Request JSON: ${Gson().toJson(openAIRequest)}")
 
-        // Send the API request
         apiService.getRecipeSuggestions("Bearer ${BuildConfig.OPENAI_API_KEY}", openAIRequest)
             .enqueue(object : Callback<OpenAIResponse> {
-            override fun onResponse(call: Call<OpenAIResponse>, response: Response<OpenAIResponse>) {
-                if (response.isSuccessful) {
-                    val recipeSuggestion = response.body()?.choices?.firstOrNull()?.text
-                    // Display the suggestion (e.g., in a TextView or AlertDialog)
-                    showRecipeSuggestion(recipeSuggestion ?: "No recipe found.")
-                    Log.d("ChatGPT", "Recipe suggestion: $recipeSuggestion")
-                } else {
-                    Toast.makeText(this@MyIngredientsActivity, "Failed to get recipe suggestion.", Toast.LENGTH_SHORT).show()
-                    Log.e("ChatGPT", "Failed to get response. Code: ${response.code()} Message: ${response.message()}")                }
-            }
+                override fun onResponse(call: Call<OpenAIResponse>, response: Response<OpenAIResponse>) {
+                    if (response.isSuccessful) {
+                        val result = response.body()?.choices?.firstOrNull()?.message?.content
+                        if (result != null) {
+                            Log.d("OpenAIResponse", "Response: $result")
+                            onResponse(result)
+                        } else {
+                            Log.e("OpenAIResponse", "Empty response body")
+                            onResponse(null)
+                        }
+                    } else {
+                        Log.e("OpenAIResponse", "Failed response. Code: ${response.code()}, Message: ${response.message()}")
+                        onResponse(null)
+                    }
+                }
 
-            override fun onFailure(call: Call<OpenAIResponse>, t: Throwable) {
-                Toast.makeText(this@MyIngredientsActivity, "API request failed: ${t.message}", Toast.LENGTH_SHORT).show()
-                Log.e("ChatGPT", "Error: ${t.message}")
+                override fun onFailure(call: Call<OpenAIResponse>, t: Throwable) {
+                    showToast("API request failed: ${t.message}")
+                    Log.e("OpenAIResponse", "Error: ${t.message}")
+                    onResponse(null)
+                }
+            })
+    }
+
+
+    private fun preprocessIngredients(ingredients: List<String>): List<String> {
+        // Normalize input
+        return ingredients
+            .map { it.trim().lowercase() }
+            .distinct()
+            .sorted()
+    }
+
+    private fun getRecipeSuggestion() {
+        // Log the current state of ingredients
+        Log.d("ChatGPT", "Ingredients: ${ingredientsList.joinToString(", ")}")
+
+        // Preprocessing stage: Limit the number of ingredients
+        val maxIngredients = 15
+        if (ingredientsList.size > maxIngredients) {
+            val truncatedIngredients: MutableList<String> = ingredientsList.take(maxIngredients).toMutableList()
+            notifyTruncatedIngredients(truncatedIngredients)
+            ingredientsList = truncatedIngredients // Now this assignment works as both are MutableList
+        }
+
+        // Validate Ingredients
+        validateIngredients(ingredientsList) { isValid, errorOrInvalidIngredients ->
+            if (isValid) {
+                // Ingredients are valid; proceed with recipe suggestion
+                Log.d("ChatGPT", "All ingredients are valid. Proceeding with recipe generation.")
+
+                // Create a unique key for caching based on the ingredients list
+                val ingredientsKey = ingredientsList.joinToString(",").hashCode().toString()
+
+                // Check if the recipe exists in the cache
+                val cachedRecipe = getCachedRecipe(ingredientsKey)
+                if (cachedRecipe != null) {
+                    // Use the cached recipe
+                    Log.d("ChatGPT", "Using cached recipe.")
+                    showRecipeSuggestion(cachedRecipe)
+                }
+
+                // Cache doesn't exist; proceed with the API request
+                val messages = listOf(
+                    RequestMessage("system", "You are a professional chef providing clear, concise, authentic as possible, and structured recipes. "),
+                    RequestMessage("user", "Provide a recipe using these ingredients: ${ingredientsList.joinToString(", ")}. Include a name for the dish, a brief description of the dish (1-2 sentences max), followed by the ingredients list, and detailed step-by-step cooking instructions. Strictly avoid conversational language or pleasantries. Focus only on the recipe content.")
+                )
+
+                makeOpenAIRequest(
+                    messages = messages,
+                    maxTokens = 2048,
+                    temperature = 0.7f,
+                    topP = 0.9f
+                ) { recipe ->
+                    if (recipe != null) {
+                        // Save the recipe to the cache
+                        saveRecipeToCache(ingredientsKey, recipe)
+                        showRecipeSuggestion(recipe)
+                    } else {
+                        showToast("Failed to get recipe suggestion.")
+                        Log.e("ChatGPT", "No content in response body.")
+                    }
+                }
+            } else {
+                // Handle invalid ingredients
+                val errorMessage = "Invalid ingredients: $errorOrInvalidIngredients"
+                showToast("Invalid ingredients: $errorOrInvalidIngredients")
+                Log.e("ChatGPT", errorMessage)
+                showAlertDialog("Invalid Ingredients", errorMessage)
             }
-        })
+        }
+    }
+
+    private fun validateIngredients(ingredients: List<String>, onValidationComplete: (Boolean, String?) -> Unit) {
+        val preprocessedIngredients = preprocessIngredients(ingredients)
+        val truncatedIngredients = preprocessedIngredients.take(50)
+
+        Log.d("OpenAIRequest", "Ingredients to validate: ${truncatedIngredients.joinToString(", ")}")
+
+        val messages = listOf(
+            RequestMessage("system", "You are a professional chef verifying ingredient validity that are used for cooking ."),
+            RequestMessage(
+                "user",
+                "Verify if the following are valid cooking ingredients: ${truncatedIngredients.joinToString(", ")}. Respond only with a list of invalid ingredients, if any. If all are valid, respond with 'All ingredients are valid.'"
+            )
+        )
+
+        makeOpenAIRequest(
+            messages = messages,
+            maxTokens = 100,
+            temperature = 0.0f,
+            topP = 1.0f
+        ) { result ->
+            val resultTrimmed = result?.trim() ?: ""
+            Log.d("validateIngredients", "API response: $resultTrimmed")
+
+            when {
+                resultTrimmed.contains("All ingredients are valid", ignoreCase = true) -> {
+                    onValidationComplete(true, null)
+                }
+                resultTrimmed.isNotBlank() -> {
+                    onValidationComplete(false, resultTrimmed)
+                }
+                else -> {
+                    onValidationComplete(false, "Error validating ingredients. No clear response from API.")
+                }
+            }
+        }
     }
 
     private fun showRecipeSuggestion(recipe: String) {
@@ -281,5 +413,41 @@ class MyIngredientsActivity : AppCompatActivity() {
         dialog.show()
     }
 
+    private fun showAlertDialog(title: String, message: String) {
+        AlertDialog.Builder(this@MyIngredientsActivity)
+            .setTitle(title)
+            .setMessage(message)
+            .setPositiveButton("OK") { dialog, _ -> dialog.dismiss() }
+            .create()
+            .show()
+    }
+
+    private fun notifyTruncatedIngredients(truncatedIngredients: List<String>) {
+        val message = """
+        You provided more than 15 ingredients. Only the first 15 ingredients were used:
+        ${truncatedIngredients.joinToString(", ")}
+    """.trimIndent()
+
+        AlertDialog.Builder(this)
+            .setTitle("Ingredient Limit Reached")
+            .setMessage(message)
+            .setPositiveButton("OK") { dialog, _ -> dialog.dismiss() }
+            .create()
+            .show()
+    }
+
+    private fun saveRecipeToCache(key: String, recipe: String) {
+        val sharedPreferences = getSharedPreferences("RecipeCache", Context.MODE_PRIVATE)
+        sharedPreferences.edit().putString(key, recipe).apply()
+    }
+
+    private fun getCachedRecipe(key: String): String? {
+        val sharedPreferences = getSharedPreferences("RecipeCache", Context.MODE_PRIVATE)
+        return sharedPreferences.getString(key, null)
+    }
+
+    fun Context.showToast(message: String, duration: Int = Toast.LENGTH_SHORT) {
+        Toast.makeText(this, message, duration).show()
+    }
 
 }
