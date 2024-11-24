@@ -124,14 +124,18 @@ class MyIngredientsActivity : AppCompatActivity() {
         recyclerIngredients.adapter = ingredientsAdapter
 
         buttonAddIngredient.setOnClickListener {
-            val ingredient = editTextIngredient.text.toString()
+            val ingredient = editTextIngredient.text.toString().trim()
             if (ingredient.isNotEmpty()) {
-                ingredientsList.add(ingredient)
-                ingredientsAdapter.notifyDataSetChanged()
-                editTextIngredient.text.clear()
-                saveIngredients()
+                if (ingredientsList.contains(ingredient.uppercase())) {
+                    showToast("Ingredient already added.")
+                } else {
+                    ingredientsList.add(ingredient.uppercase())
+                    ingredientsAdapter.notifyItemInserted(ingredientsList.size - 1)
+                    editTextIngredient.text.clear()
+                    saveIngredients()
+                }
             } else {
-                showToast("Please enter an ingredient")
+                showToast("Please enter an ingredient.")
             }
         }
 
@@ -173,15 +177,14 @@ class MyIngredientsActivity : AppCompatActivity() {
             firestore.collection(ingredientsCollection).document(userId)
                 .get()
                 .addOnSuccessListener { document ->
-                    if (document.exists()) {
-                        val savedIngredients = document.get("ingredientsList") as? List<String>
-                        ingredientsList.clear()
-                        savedIngredients?.let { ingredientsList.addAll(it) }
-                        ingredientsAdapter.notifyDataSetChanged()
-                    }
+                    val savedIngredients = document.get("ingredientsList") as? List<String>
+                    ingredientsList.clear()
+                    savedIngredients?.map { it.uppercase() }?.let { ingredientsList.addAll(it) }
+                    ingredientsAdapter.notifyDataSetChanged()
                 }
                 .addOnFailureListener { e ->
-                    showToast("Failed to load ingredients: ${e.message}")
+                    Log.e("MyIngredientsActivity", "Failed to load ingredients: ${e.message}", e)
+                    showToast("Unable to load ingredients. Please try again later.")
                 }
         }
     }
@@ -192,9 +195,11 @@ class MyIngredientsActivity : AppCompatActivity() {
             firestore.collection(ingredientsCollection).document(userId)
                 .set(ingredientsData)
                 .addOnSuccessListener {
-                    showToast("Ingredients saved successfully")                }
+                    Log.d("MyIngredientsActivity", "Ingredients saved successfully.")
+                }
                 .addOnFailureListener { e ->
-                    showToast("Failed to save ingredients: ${e.message}")
+                    Log.e("MyIngredientsActivity", "Failed to save ingredients: ${e.message}", e)
+                    showToast("Failed to save ingredients. Please check your connection.")
                 }
         }
     }
@@ -223,39 +228,68 @@ class MyIngredientsActivity : AppCompatActivity() {
     }
 
     private fun editIngredient(position: Int) {
-        val currentIngredient = ingredientsList[position]
-        editTextIngredient.setText(currentIngredient)
-        buttonAddIngredient.text = "Update"
-        buttonAddIngredient.setOnClickListener {
-            val updatedIngredient = editTextIngredient.text.toString()
-            if (updatedIngredient.isNotEmpty()) {
-                ingredientsList[position] = updatedIngredient
-                ingredientsAdapter.notifyItemChanged(position)
-                editTextIngredient.text.clear()
-                buttonAddIngredient.text = "Add"
-                buttonAddIngredient.setOnClickListener {
-                    val ingredient = editTextIngredient.text.toString()
-                    if (ingredient.isNotEmpty()) {
-                        ingredientsList.add(ingredient)
-                        ingredientsAdapter.notifyDataSetChanged()
-                        editTextIngredient.text.clear()
-                        saveIngredients()
-                    } else {
-                        showToast("Please enter an ingredients.")
-                    }
+        if (position in ingredientsList.indices) {
+            val currentIngredient = ingredientsList[position]
+            editTextIngredient.setText(currentIngredient)
+
+            buttonAddIngredient.text = "Update"
+            buttonAddIngredient.setOnClickListener {
+                val updatedIngredient = editTextIngredient.text.toString().trim()
+                if (updatedIngredient.isEmpty()) {
+                    showToast("Please enter a valid ingredient.")
+                } else if (ingredientsList.contains(updatedIngredient.uppercase()) && currentIngredient.uppercase() != updatedIngredient.uppercase()) {
+                    showToast("This ingredient already exists.")
+                } else {
+                    ingredientsList[position] = updatedIngredient.uppercase()
+                    ingredientsAdapter.notifyItemChanged(position)
+                    resetAddIngredientButton()
+                    saveIngredients()
+                    showToast("Ingredient updated successfully.")
                 }
-                saveIngredients()
+            }
+        } else {
+            Log.e("MyIngredientsActivity", "Invalid ingredient selection for editing at position: $position")
+            showToast("Invalid selection.")
+        }
+    }
+
+    private fun resetAddIngredientButton() {
+        buttonAddIngredient.text = "Add"
+        buttonAddIngredient.setOnClickListener {
+            val ingredient = editTextIngredient.text.toString().trim()
+            if (ingredient.isEmpty()) {
+                showToast("Please enter an ingredient.")
+            } else if (ingredientsList.contains(ingredient.uppercase())) {
+                showToast("Ingredient already added.")
             } else {
-                showToast("Please enter an ingredients.")
+                ingredientsList.add(ingredient.uppercase())
+                ingredientsAdapter.notifyItemInserted(ingredientsList.size - 1)
+                editTextIngredient.text.clear()
+                saveIngredients()
             }
         }
     }
 
     private fun deleteIngredient(position: Int) {
-        ingredientsList.removeAt(position)
-        ingredientsAdapter.notifyItemRemoved(position)
-        saveIngredients()
+        if (position in ingredientsList.indices) { // Safely check position
+            val deletedIngredient = ingredientsList.removeAt(position)
+            ingredientsAdapter.notifyItemRemoved(position)
+
+            // If the list is now empty, notify the adapter
+            if (ingredientsList.isEmpty()) {
+                ingredientsAdapter.notifyDataSetChanged()
+            }
+
+            // Save updated list to Firebase
+            saveIngredients()
+            showToast("Ingredient '$deletedIngredient' deleted.")
+        } else {
+            Log.e("MyIngredientsActivity", "Attempted to delete invalid position: $position")
+            showToast("Invalid position. Unable to delete.")
+        }
     }
+
+
 
     private fun makeOpenAIRequest(
         messages: List<RequestMessage>,
@@ -300,7 +334,6 @@ class MyIngredientsActivity : AppCompatActivity() {
                 }
             })
     }
-
 
     private fun preprocessIngredients(ingredients: List<String>): List<String> {
         // Normalize input
