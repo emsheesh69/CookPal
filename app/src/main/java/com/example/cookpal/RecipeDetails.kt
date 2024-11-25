@@ -206,7 +206,11 @@ class RecipeDetails : AppCompatActivity() {
 
         recyclerMealIngredients.setHasFixedSize(true)
         recyclerMealIngredients.layoutManager = LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false)
-        recyclerMealIngredients.adapter = IngredientsAdapter(this, ingredientObjects)
+        recyclerMealIngredients.adapter = IngredientsAdapter(this, ingredientObjects) { ingredientName ->
+            if (ingredientName != null) {
+                getSubstituteForIngredient(ingredientName)
+            }
+        }
     }
 
 
