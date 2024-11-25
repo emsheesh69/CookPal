@@ -1,5 +1,6 @@
 package com.example.cookpal
 
+import android.app.AlertDialog
 import android.app.ProgressDialog
 import android.content.Intent
 import android.icu.text.SimpleDateFormat
@@ -18,6 +19,8 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.cookpal.Adapters.IngredientsAdapter
 import com.example.cookpal.Models.ExtendedIngredient
+import com.example.cookpal.Listeners.IngredientSubstituteListener
+import com.example.cookpal.Models.IngredientSubstitution
 import com.example.cookpal.Models.RecipeDetailsResponse
 import com.example.cookpal.listeners.RecipeDetailsListener
 import com.google.firebase.auth.FirebaseAuth
@@ -25,6 +28,7 @@ import com.google.firebase.database.FirebaseDatabase
 import com.squareup.picasso.Picasso
 import java.util.Date
 import java.util.Locale
+
 
 class RecipeDetails : AppCompatActivity() {
 
@@ -109,6 +113,53 @@ class RecipeDetails : AppCompatActivity() {
     private fun fetchRecipeDetails(recipeId: Int) {
         manager.getRecipeDetails(recipeDetailsListener, recipeId)
     }
+    private fun setupIngredientsRecyclerView(ingredients: List<ExtendedIngredient>) {
+        recyclerMealIngredients.layoutManager = LinearLayoutManager(this)
+
+        val adapter = IngredientsAdapter(
+            this, ingredients
+        ) { ingredientName: String? ->
+            if (ingredientName != null) {
+                getSubstituteForIngredient(ingredientName)
+            }
+        }
+
+        recyclerMealIngredients.adapter = adapter
+    }
+
+    private fun getSubstituteForIngredient(ingredientName: String) {
+        manager.getIngredientSubstitute(ingredientName, object : IngredientSubstituteListener {
+            override fun didFetch(response: IngredientSubstitution, message: String) {
+                runOnUiThread {
+                    if (response.substitutes?.isNotEmpty() == true) {
+                        response.substitutes?.let { showSubstituteDialog(ingredientName, it) }
+                    } else {
+                        showSubstituteDialog(ingredientName, listOf("No substitutes available."))
+                    }
+                }
+            }
+
+            override fun didError(message: String) {
+                runOnUiThread {
+                    showSubstituteDialog(ingredientName, listOf("Error fetching substitutes: $message"))
+                }
+            }
+        })
+    }
+
+    private fun showSubstituteDialog(ingredientName: String, substitutes: List<String>) {
+        val dialogBuilder = AlertDialog.Builder(this)
+        dialogBuilder.setTitle("Substitutes for $ingredientName")
+
+        val substituteText = substitutes.joinToString("\n")
+        dialogBuilder.setMessage(substituteText)
+
+        dialogBuilder.setPositiveButton("OK") { dialog, _ ->
+            dialog.dismiss()
+        }
+
+        dialogBuilder.create().show()
+    }
 
     private fun loadAIRecipeDetails() {
         // Retrieve AI recipe details from the intent
@@ -184,8 +235,11 @@ class RecipeDetails : AppCompatActivity() {
 
             recyclerMealIngredients.setHasFixedSize(true)
             recyclerMealIngredients.layoutManager = LinearLayoutManager(this@RecipeDetails, LinearLayoutManager.VERTICAL, false)
-            val ingredientsAdapter = IngredientsAdapter(this@RecipeDetails, response.extendedIngredients)
+            val ingredientsAdapter = IngredientsAdapter(this@RecipeDetails, response.extendedIngredients) { ingredientName ->
+                getSubstituteForIngredient(ingredientName)
+            }
             recyclerMealIngredients.adapter = ingredientsAdapter
+
         }
 
         override fun didError(message: String) {

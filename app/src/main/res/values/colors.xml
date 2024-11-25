@@ -11,4 +11,5 @@
     <color name="row_even_color">#FFFFFF</color>
     <color name="row_header_color">#5D4C4C</color>
     <color name="black_tint">#80000000</color>
+    <color name="beige">#F5F5DC</color>
 </resources>
