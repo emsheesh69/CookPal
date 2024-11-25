@@ -476,7 +476,6 @@ class CookingActivity : AppCompatActivity() {
             }
         })
     }
-
     private fun speakOut(text: String) {
         isSpeaking = true
         val targetLanguageCode = when (selectedLanguage) {
@@ -532,7 +531,6 @@ class CookingActivity : AppCompatActivity() {
             }
         }.start()
     }
-
     private fun playAudio(audioData: ByteArray) {
         try {
             mediaPlayer?.run {
