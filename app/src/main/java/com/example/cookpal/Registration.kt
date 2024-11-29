@@ -43,6 +43,7 @@ class Registration : AppCompatActivity() {
 
 
 
+
         val loginBtn = findViewById<TextView>(R.id.loginTextView)
         loginBtn.setOnClickListener {
             val intent = Intent(this, Login::class.java)

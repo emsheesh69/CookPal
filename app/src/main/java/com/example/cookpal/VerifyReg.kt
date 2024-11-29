@@ -3,6 +3,7 @@ package com.example.cookpal
 import SendGridHelper
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
@@ -16,7 +17,6 @@ import com.google.firebase.database.FirebaseDatabase
 class VerifyReg : AppCompatActivity() {
     private lateinit var auth: FirebaseAuth
     private lateinit var database: FirebaseDatabase
-    private lateinit var sendGridHelper: SendGridHelper // Create a SendGridHelper instance
     private lateinit var email: String
     private lateinit var pass: String
     private lateinit var generatedOtp: String // OTP sent via email through SendGrid
@@ -66,6 +66,11 @@ class VerifyReg : AppCompatActivity() {
             }
         }
 
+        // ResendOTP
+        findViewById<TextView>(R.id.resendbtn).setOnClickListener {
+            resendOtp()
+        }
+
         // Optionally handle back navigation to the Registration screen
         findViewById<TextView>(R.id.backbtn).setOnClickListener {
             startActivity(Intent(this, Registration::class.java))
@@ -73,19 +78,19 @@ class VerifyReg : AppCompatActivity() {
     }
 
     private fun resendOtp() {
-        generatedOtp = generateOtp()  // Generate a new OTP
-        sendGridHelper.sendOtpEmail(generatedOtp, email)  // Use SendGridHelper to send OTP
-        Toast.makeText(this, "A new OTP has been sent to your email", Toast.LENGTH_SHORT).show()
+        try {
+            generatedOtp = generateOtp()  // Generate a new OTP
+            SendGridHelper.sendOtpEmail(generatedOtp, email)  // Use SendGridHelper to send OTP
+            Toast.makeText(this, "A new OTP has been sent to your email", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Log.d("VerifyReg", "Failed to resend OTP: ${e.message}")
+        }
     }
+
 
     private fun generateOtp(): String {
         return (100000..999999).random().toString()
     }
-
-
-
-
-
 
 
     // Register the user in Firebase Authentication with email and password
@@ -97,27 +102,36 @@ class VerifyReg : AppCompatActivity() {
                     // Store email in Firebase Realtime Database
                     database.reference.child("users").child(userId).child("email").setValue(email)
                         .addOnSuccessListener {
-                            Toast.makeText(this, "Registration successful", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this, "Registration successful", Toast.LENGTH_SHORT)
+                                .show()
 
                             // Log the user out to ensure they are redirected to LoginActivity
                             auth.signOut()
 
                             // After successful registration, navigate to LoginActivity
                             val loginIntent = Intent(this, Login::class.java)
-                            loginIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                            loginIntent.flags =
+                                Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                             startActivity(loginIntent)
                             finish()  // Close VerifyReg activity to prevent the user from going back
                         }
                         .addOnFailureListener { e ->
-                            Toast.makeText(this, "Failed to store user data: ${e.message}", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                this,
+                                "Failed to store user data: ${e.message}",
+                                Toast.LENGTH_SHORT
+                            ).show()
                         }
                 }
             } else {
-                Toast.makeText(this, "Failed to create user: ${task.exception?.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    this,
+                    "Failed to create user: ${task.exception?.message}",
+                    Toast.LENGTH_SHORT
+                ).show()
             }
         }
     }
-
 
 
 }

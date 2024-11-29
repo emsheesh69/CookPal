@@ -198,45 +198,90 @@ class CookingActivity : AppCompatActivity() {
 
     }
 
+    private val glossary = mapOf(
+        "bake" to "maghurno",
+        "boil" to "pakuluin",
+        "broth" to "sabaw",
+        "chop" to "hiwa",
+        "dice" to "tadtarin",
+        "fry" to "magprito",
+        "grill" to "i-ihaw",
+        "mince" to "durugin",
+        "mix" to "haluin",
+        "peel" to "balatan",
+        "roast" to "iihaw",
+        "sauté" to "igisa",
+        "season" to "timplahan",
+        "simmer" to "pakuluan ng mahina",
+        "slice" to "hiwain",
+        "steam" to "pasingawan",
+        "stir" to "haluin",
+        "strain" to "salain",
+        "whisk" to "pagsamahin o batihin",
+        "marinate" to "ibabad sa timpla",
+        "knead" to "masahin",
+        "garnish" to "palamutihan",
+        "blend" to "ihalo sa blender",
+        "crush" to "durugin",
+        "drain" to "salain o alisin ang tubig"
+    )
+
     private fun translateText(input: String, targetLanguage: String, callback: (String) -> Unit) {
-        val url = "https://translation.googleapis.com/language/translate/v2"
-        val requestBody = """
+        // Preprocess text using glossary
+        val preTranslatedText = glossary.entries.fold(input) { text, (englishTerm, filipinoTerm) ->
+            text.replace(englishTerm, filipinoTerm, ignoreCase = true)
+        }
+
+        // If the target language is not Filipino, call the Cloud Translation API
+        if (targetLanguage != "tl") {
+            // Google Translate API URL
+            val url = "https://translation.googleapis.com/language/translate/v2"
+
+            val requestBody = """
         {
-            "q": "$input",
+            "q": "$preTranslatedText",
             "target": "$targetLanguage",
             "format": "text"
         }
-    """.trimIndent()
-        Thread {
-            try {
-                val connection = (URL("$url?key=$apiKey").openConnection() as HttpURLConnection).apply {
-                    requestMethod = "POST"
-                    doOutput = true
-                    setRequestProperty("Content-Type", "application/json")
-                    outputStream.write(requestBody.toByteArray())
-                }
+        """.trimIndent()
 
-                val responseCode = connection.responseCode
-                if (responseCode == 200) {
-                    val response = connection.inputStream.bufferedReader().readText()
-                    val translatedText = JSONObject(response)
-                        .getJSONObject("data")
-                        .getJSONArray("translations")
-                        .getJSONObject(0)
-                        .getString("translatedText")
+            // Asynchronous HTTP request
+            Thread {
+                try {
+                    val connection = (URL("$url?key=$apiKey").openConnection() as HttpURLConnection).apply {
+                        requestMethod = "POST"
+                        doOutput = true
+                        setRequestProperty("Content-Type", "application/json")
+                        outputStream.write(requestBody.toByteArray())
+                    }
 
-                    // Invoke the callback with the translated text
-                    runOnUiThread { callback(translatedText) }
-                } else {
-                    Log.e("Translation", "Failed with response code: $responseCode")
-                    runOnUiThread { callback(input) } // Fallback to original text
+                    val responseCode = connection.responseCode
+                    if (responseCode == 200) {
+                        val response = connection.inputStream.bufferedReader().readText()
+                        val translatedText = JSONObject(response)
+                            .getJSONObject("data")
+                            .getJSONArray("translations")
+                            .getJSONObject(0)
+                            .getString("translatedText")
+
+                        // Invoke the callback with the translated text
+                        runOnUiThread { callback(translatedText) }
+                    } else {
+                        Log.e("Translation", "Failed with response code: $responseCode")
+                        runOnUiThread { callback(preTranslatedText) } // Fallback to pre-translated text
+                    }
+                } catch (e: Exception) {
+                    Log.e("Translation", "Error: ${e.message}")
+                    runOnUiThread { callback(preTranslatedText) } // Fallback to pre-translated text
                 }
-            } catch (e: Exception) {
-                Log.e("Translation", "Error: ${e.message}")
-                runOnUiThread { callback(input) } // Fallback to original text
-            }
-        }.start()
+            }.start()
+        } else {
+            // If target language is Filipino, use pre-translated text
+            callback(preTranslatedText)
+        }
     }
+
+
     private fun saveCookingHistory() {
         val user = FirebaseAuth.getInstance().currentUser
         if (user != null) {

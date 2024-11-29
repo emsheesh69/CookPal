@@ -23,6 +23,7 @@ import android.content.pm.PackageManager
 import androidx.core.app.ActivityCompat
 import android.net.Uri
 import android.provider.Settings
+import android.util.Log
 import com.example.cookpal.Models.Recipe
 
 class MainActivity : AppCompatActivity(), ClickedRecipeListener {
@@ -324,6 +325,7 @@ class MainActivity : AppCompatActivity(), ClickedRecipeListener {
 
         override fun didError(message: String) {
             dialog.dismiss()
+            Log.e("ComplexSearch", "Error: $message")
             Toast.makeText(this@MainActivity, message, Toast.LENGTH_SHORT).show()
         }
     }
@@ -350,6 +352,7 @@ class MainActivity : AppCompatActivity(), ClickedRecipeListener {
 
         override fun didError(message: String) {
             dialog.dismiss()
+            Log.e("RandomRecipe", "Error: $message")
             Toast.makeText(this@MainActivity, message, Toast.LENGTH_SHORT).show()
         }
     }
