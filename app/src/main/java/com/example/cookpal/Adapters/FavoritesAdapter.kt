@@ -47,7 +47,14 @@ class FavoritesAdapter(
         fun bind(favorite: FavModel) {
             recipeName.text = favorite.name
             cookingDate.text = favorite.date
-            Picasso.get().load(favorite.image).into(recipeImage)
+
+            val imageUrl = favorite.image?.takeIf { it.isNotEmpty() }
+
+            if (imageUrl != null) {
+                Picasso.get().load(favorite.image).into(recipeImage)
+            } else {
+                recipeImage.setImageResource(R.drawable.cookpal)
+            }
         }
     }
 }

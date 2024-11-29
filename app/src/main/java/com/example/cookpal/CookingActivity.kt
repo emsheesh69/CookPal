@@ -91,6 +91,8 @@ class CookingActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val intent = intent
+        instructions = intent.getStringArrayListExtra("instructions") ?: arrayListOf()
 
         textToSpeech = TextToSpeech(this, object : TextToSpeech.OnInitListener {
             override fun onInit(status: Int) {
@@ -327,7 +329,7 @@ class CookingActivity : AppCompatActivity() {
 
             override fun onRmsChanged(rmsdB: Float) {
                 lastRmsTimestamp = System.currentTimeMillis()
-                if (rmsdB > 2) {
+                if (rmsdB > 4) {
                     updateMicStatus("Hearing you...")
                 } else {
                     updateMicStatus("Listening...")
@@ -349,10 +351,13 @@ class CookingActivity : AppCompatActivity() {
 
                     if (isValidCommand(command)) {
                         updateMicStatus("Command recognized: $command")
-                        handleVoiceCommand(command) // This should be called when a valid command is recognized
+                        handleVoiceCommand(command)
                     } else {
                         updateMicStatus("Invalid command. Try again...")
-                        speakOut("Please say next or previous")
+                        when (selectedLanguage) {
+                            "Filipino" -> speakOut("Pakisabi po susunod o bumalik")
+                            else -> speakOut("Please say next or previous")
+                        }
                     }
                 }
                 restartListeningWithDelay(1000)
@@ -416,10 +421,35 @@ class CookingActivity : AppCompatActivity() {
         })
     }
     private fun isValidCommand(command: String): Boolean {
+        return when (selectedLanguage) {
+            "Filipino" -> isValidFilipinoCommand(command)
+            else -> isValidEnglishCommand(command)
+        }
+    }
+
+    private fun isValidEnglishCommand(command: String): Boolean {
         val validCommands = listOf(
             "next", "forward", "continue", "go next", "next step",
-            "back", "previous", "go back", "before", "previous step", "repeat", "again",
+            "back", "previous", "go back", "before", "previous step",
+            "repeat", "again",
             "start timer", "set timer", "begin timer"
+        )
+        return validCommands.any { command.contains(it) }
+    }
+
+    private fun isValidFilipinoCommand(command: String): Boolean {
+        val validCommands = listOf(
+            "susunod", "sunod", "magpatuloy", "tuloy",
+            "sunod na hakbang", "susunod na hakbang",
+
+            "bumalik", "balik", "nakaraan", "dating",
+            "dati", "nakaraang hakbang", "bumalik sa dati",
+
+            "ulitin", "ulit", "paulit", "sabihin muli",
+            "ulitin ito", "paulit-ulit",
+
+            "magsimula ng timer", "i-timer",
+            "maglagay ng timer", "magtakda ng oras"
         )
         return validCommands.any { command.contains(it) }
     }
@@ -459,51 +489,92 @@ class CookingActivity : AppCompatActivity() {
     }
 
     private fun handleVoiceCommand(command: String) {
-        when {
+        val normalizedCommand = command.toLowerCase()
 
+        when (selectedLanguage) {
+            "Filipino" -> handleFilipinoCommand(normalizedCommand)
+            else -> handleEnglishCommand(normalizedCommand)
+        }
+    }
+
+    private fun handleEnglishCommand(command: String) {
+        when {
             command.contains("start timer") || command.contains("set timer") ||
                     command.contains("begin timer") -> {
                 handleTimerCommand(command)
             }
 
-
             command.contains("next") || command.contains("forward") ||
                     command.contains("continue") -> {
-                if (currentStepIndex < instructions.size - 1) {
-                    runOnUiThread {
-                        currentStepIndex++
-                        updateInstructionView()
-                        val feedback = "Moving to step ${currentStepIndex + 1}"
-                        updateMicStatus(feedback)
-                        speakOut("$feedback: ${textViewCookingInstruction.text}")
-                    }
-                } else {
-                    val message = "Already at the last step"
-                    updateMicStatus(message)
-                    speakOut(message)
-                }
+                handleNextStep("Moving to step", "Already at the last step")
             }
+
             command.contains("back") || command.contains("previous") ||
                     command.contains("before") -> {
-                if (currentStepIndex > 0) {
-                    runOnUiThread {
-                        currentStepIndex--
-                        updateInstructionView()
-                        val feedback = "Going back to step ${currentStepIndex + 1}"
-                        updateMicStatus(feedback)
-                        speakOut("$feedback: ${textViewCookingInstruction.text}")
-                    }
-                } else {
-                    val message = "Already at the first step"
-                    updateMicStatus(message)
-                    speakOut(message)
-                }
+                handlePreviousStep("Going back to step", "Already at the first step")
             }
+
             command.contains("repeat") || command.contains("again") -> {
                 val feedback = "Repeating step ${currentStepIndex + 1}"
                 updateMicStatus(feedback)
                 speakOut("$feedback: ${textViewCookingInstruction.text}")
             }
+        }
+    }
+
+    private fun handleFilipinoCommand(command: String) {
+        when {
+            command.contains("magsimula ng timer") || command.contains("i-timer") ||
+                    command.contains("maglagay ng timer") || command.contains("magtakda ng oras") -> {
+                handleTimerCommand(command)
+            }
+
+            command.contains("susunod") || command.contains("sunod") ||
+                    command.contains("magpatuloy") || command.contains("tuloy") -> {
+                handleNextStep("Lilipat sa hakbang", "Nasa huling hakbang na")
+            }
+
+            command.contains("bumalik") || command.contains("nakaraan") ||
+                    command.contains("dating") || command.contains("dati") -> {
+                handlePreviousStep("Babalik sa hakbang", "Nasa unang hakbang na")
+            }
+
+            command.contains("ulitin") || command.contains("ulit") ||
+                    command.contains("paulit") || command.contains("sabihin muli") -> {
+                val feedback = "Inuulit ang hakbang ${currentStepIndex + 1}"
+                updateMicStatus(feedback)
+                speakOut("$feedback: ${textViewCookingInstruction.text}")
+            }
+        }
+    }
+
+    private fun handleNextStep(progressMessage: String, limitMessage: String) {
+        if (currentStepIndex < instructions.size - 1) {
+            runOnUiThread {
+                currentStepIndex++
+                updateInstructionView()
+                val feedback = "$progressMessage ${currentStepIndex + 1}"
+                updateMicStatus(feedback)
+                speakOut("$feedback: ${textViewCookingInstruction.text}")
+            }
+        } else {
+            updateMicStatus(limitMessage)
+            speakOut(limitMessage)
+        }
+    }
+
+    private fun handlePreviousStep(progressMessage: String, limitMessage: String) {
+        if (currentStepIndex > 0) {
+            runOnUiThread {
+                currentStepIndex--
+                updateInstructionView()
+                val feedback = "$progressMessage ${currentStepIndex + 1}"
+                updateMicStatus(feedback)
+                speakOut("$feedback: ${textViewCookingInstruction.text}")
+            }
+        } else {
+            updateMicStatus(limitMessage)
+            speakOut(limitMessage)
         }
     }
     private fun handleTimerCommand(command: String) {

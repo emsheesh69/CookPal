@@ -155,6 +155,8 @@ class RecipeDetails : AppCompatActivity() {
         val image = intent.getStringExtra("image")
         val ingredients = intent.getStringArrayListExtra("ingredients") ?: arrayListOf()
         val instructions = intent.getStringArrayListExtra("instructions") ?: arrayListOf()
+//        this.instructions = intent.getStringArrayListExtra("instructions") ?: arrayListOf()
+
 
         // Debugging logs
         Log.d("RecipeDetails", "AI Recipe Details - Title: $title")
@@ -289,20 +291,27 @@ class RecipeDetails : AppCompatActivity() {
     private fun addToFavorites() {
         val databaseRef = FirebaseDatabase.getInstance().getReference("users/$userId/Favorites")
         val currentDate = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
-        val favorite = mapOf(
+
+        val isAIRecipe = intent.getBooleanExtra("isAIRecipe", false)
+
+        val favorite = mutableMapOf(
             "id" to id,
             "name" to textViewMealName.text.toString(),
             "image" to (imageViewMealImage.tag as? String ?: ""),
-            "date" to currentDate
+            "date" to currentDate,
+            "source" to if (isAIRecipe) "AI" else "Spoonacular",
+            "isAIRecipe" to isAIRecipe // Flag indicating AI recipe
         )
 
         databaseRef.child(id.toString()).setValue(favorite).addOnSuccessListener {
             Toast.makeText(this, "Added to Favorites", Toast.LENGTH_SHORT).show()
             isFavorite = true
             updateFavoriteButton()
+        }.addOnFailureListener {
+            Toast.makeText(this, "Failed to add to Favorites", Toast.LENGTH_SHORT).show()
+            Log.e("RecipeDetails", "Error adding to Favorites: ${it.message}")
         }
     }
-
     private fun removeFromFavorites() {
         val databaseRef = FirebaseDatabase.getInstance().getReference("users/$userId/Favorites")
         databaseRef.child(id.toString()).removeValue().addOnSuccessListener {
