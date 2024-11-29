@@ -1,10 +1,12 @@
 package com.example.cookpal
 
+import android.app.AlertDialog
 import android.app.ProgressDialog
 import android.content.Intent
 import android.icu.text.SimpleDateFormat
 import android.os.Bundle
 import android.text.Html
+import android.util.Log
 import android.widget.Button
 import android.widget.ImageButton
 import android.widget.ImageView
@@ -16,6 +18,9 @@ import androidx.appcompat.widget.Toolbar
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.cookpal.Adapters.IngredientsAdapter
+import com.example.cookpal.Models.ExtendedIngredient
+import com.example.cookpal.Listeners.IngredientSubstituteListener
+import com.example.cookpal.Models.IngredientSubstitution
 import com.example.cookpal.Models.RecipeDetailsResponse
 import com.example.cookpal.listeners.RecipeDetailsListener
 import com.google.firebase.auth.FirebaseAuth
@@ -23,6 +28,7 @@ import com.google.firebase.database.FirebaseDatabase
 import com.squareup.picasso.Picasso
 import java.util.Date
 import java.util.Locale
+
 
 class RecipeDetails : AppCompatActivity() {
 
@@ -58,6 +64,9 @@ class RecipeDetails : AppCompatActivity() {
 
         id = intent.getStringExtra("id")?.toIntOrNull() ?: 0
 
+        // Check if the recipe is AI-generated
+        val isAIRecipe = intent.getBooleanExtra("isAIRecipe", false)
+
         val toolbar = findViewById<Toolbar>(R.id.toolbar)
         setSupportActionBar(toolbar)
 
@@ -74,13 +83,24 @@ class RecipeDetails : AppCompatActivity() {
             show()
         }
 
-        fetchRecipeDetails(id)
-        checkFavoriteStatus()
+        // Decide the data source based on the flag
+        if (isAIRecipe) {
+            loadAIRecipeDetails() // Load AI-generated recipe
+        } else {
+            fetchRecipeDetails(id) // Fetch Spoonacular recipe
+        }
 
-        // Set up button click listener
+        if (intent.getStringExtra("type") == "Spoonacular") {
+            fetchRecipeDetails(id)
+        } else {
+            loadAIRecipeDetails()
+        }
+
         startCookingButton.setOnClickListener {
             startCooking()
         }
+
+        checkFavoriteStatus()
 
         btnFavorite.setOnClickListener {
             if (isFavorite) removeFromFavorites() else addToFavorites()
@@ -91,6 +111,124 @@ class RecipeDetails : AppCompatActivity() {
 
     private fun fetchRecipeDetails(recipeId: Int) {
         manager.getRecipeDetails(recipeDetailsListener, recipeId)
+    }
+
+    private fun getSubstituteForIngredient(ingredientName: String?) {
+        ingredientName?.takeIf { it.isNotBlank() }?.let { name ->
+            manager.getIngredientSubstitute(name, object : IngredientSubstituteListener {
+                override fun didFetch(response: IngredientSubstitution, message: String) {
+                    runOnUiThread {
+                        val substitutes = response.substitutes ?: listOf("No substitutes available.")
+                        showSubstituteDialog(name, substitutes)
+                    }
+                }
+
+                override fun didError(message: String) {
+                    runOnUiThread {
+                        showSubstituteDialog(name, listOf("Error fetching substitutes: $message"))
+                    }
+                }
+            })
+        } ?: Toast.makeText(this, "Ingredient name not provided", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun showSubstituteDialog(ingredientName: String, substitutes: List<String>) {
+        val dialogBuilder = AlertDialog.Builder(this)
+        dialogBuilder.setTitle("Substitutes for $ingredientName")
+
+        val substituteText = substitutes.joinToString("\n")
+        dialogBuilder.setMessage(substituteText)
+
+        dialogBuilder.setPositiveButton("OK") { dialog, _ ->
+            dialog.dismiss()
+        }
+
+        dialogBuilder.create().show()
+    }
+
+    private fun loadAIRecipeDetails() {
+        Log.d("RecipeDetails", "Loading AI Recipe Details...")
+
+        // Retrieve AI recipe details from the intent
+        val title = intent.getStringExtra("title") ?: "No title available"
+        val summary = intent.getStringExtra("summary") ?: "No summary available"
+        val image = intent.getStringExtra("image")
+        val ingredients = intent.getStringArrayListExtra("ingredients") ?: arrayListOf()
+        val instructions = intent.getStringArrayListExtra("instructions") ?: arrayListOf()
+
+        // Debugging logs
+        Log.d("RecipeDetails", "AI Recipe Details - Title: $title")
+        Log.d("RecipeDetails", "AI Recipe Details - Summary: $summary")
+        Log.d("RecipeDetails", "AI Recipe Details - Image: ${image ?: "No image provided"}")
+        Log.d("RecipeDetails", "AI Recipe Details - Ingredients: $ingredients")
+        Log.d("RecipeDetails", "AI Recipe Details - Instructions: $instructions")
+
+        // Log instructions to check
+        Log.d("RecipeDetails", "AI Recipe Instructions: $instructions")
+
+        // Populate the UI with AI recipe details
+        textViewMealName.text = title
+        textViewMealSource.text = "Generated by AI" // AI recipe label
+        textViewMealSummary.text = Html.fromHtml(summary, Html.FROM_HTML_MODE_LEGACY)
+
+        if (!image.isNullOrBlank()) {
+            Picasso.get().load(image).into(imageViewMealImage)
+            imageViewMealImage.tag = image
+        } else {
+            // Use a placeholder image for AI recipes without an image
+            imageViewMealImage.setImageResource(R.drawable.cookpal)
+            imageViewMealImage.tag = null
+        }
+
+        // Ensure instructions are displayed correctly
+        if (instructions.isNotEmpty()) {
+            textViewMealInstructions.text = instructions.joinToString("\n\n")
+        } else {
+            textViewMealInstructions.text = "Instructions not available"
+        }
+
+        // Set the recipe ID for the AI-generated recipe
+        id = (intent.getStringExtra("id")?.toIntOrNull() ?: (System.currentTimeMillis() % Int.MAX_VALUE).toInt())
+
+        // Map ingredients to ExtendedIngredient objects
+        val ingredientObjects = ingredients.map { ingredient ->
+            ExtendedIngredient().apply {
+                this.name = parseIngredientName(ingredient) // Extract short name
+                this.original = ingredient // Full AI-provided description
+                this.id = 0 // Optional ID for consistency
+            }
+        }
+
+        if (ingredientObjects.isEmpty()) {
+            Log.w("RecipeDetails", "No ingredients provided for the AI recipe.")
+        }
+
+        recyclerMealIngredients.setHasFixedSize(true)
+        recyclerMealIngredients.layoutManager = LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false)
+        recyclerMealIngredients.adapter = IngredientsAdapter(this, ingredientObjects) { ingredientName ->
+            ingredientName?.let {
+                getSubstituteForIngredient(it)
+            } ?: Log.e("RecipeDetails", "Ingredient name is null.")
+        }
+
+        // Ensure dialog dismissal happens safely
+        if (::dialog.isInitialized && dialog.isShowing) {
+            dialog.dismiss()
+        } else {
+            Log.w("RecipeDetails", "Dialog was not initialized or already dismissed.")
+        }
+
+        Log.d("RecipeDetails", "AI Recipe Details successfully loaded.")
+    }
+
+    private fun parseIngredientName(fullIngredient: String): String {
+        // Remove quantities and preparation details using a regex
+        val regex = Regex("""\b(\d+[^a-zA-Z]*\s)?(cup[s]?|tablespoon[s]?|teaspoon[s]?|gram[s]?|ounce[s]?|kg|lb|liter[s]?|ml|slice[s]?|pinch[es]?|dash|whole|clove[s]?|handful)\b""")
+        val cleaned = fullIngredient.replace(regex, "").trim()
+
+        // Extract the last significant word(s) as the ingredient name
+        val words = cleaned.split(" ")
+        return words.lastOrNull()?.lowercase() ?: cleaned
     }
 
     private val recipeDetailsListener = object : RecipeDetailsListener {
@@ -118,13 +256,20 @@ class RecipeDetails : AppCompatActivity() {
 
             recyclerMealIngredients.setHasFixedSize(true)
             recyclerMealIngredients.layoutManager = LinearLayoutManager(this@RecipeDetails, LinearLayoutManager.VERTICAL, false)
-            val ingredientsAdapter = IngredientsAdapter(this@RecipeDetails, response.extendedIngredients)
+            val ingredientsAdapter = IngredientsAdapter(this@RecipeDetails, response.extendedIngredients) { ingredientName ->
+                getSubstituteForIngredient(ingredientName)
+            }
             recyclerMealIngredients.adapter = ingredientsAdapter
+
         }
 
         override fun didError(message: String) {
             dialog.dismiss()
-            Toast.makeText(this@RecipeDetails, message, Toast.LENGTH_SHORT).show()
+            if (intent.getStringExtra("type") == "AI") {
+                Toast.makeText(this@RecipeDetails, "Failed to load AI Recipe: $message", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(this@RecipeDetails, message, Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
@@ -168,12 +313,14 @@ class RecipeDetails : AppCompatActivity() {
     }
 
     private fun startCooking() {
-        if (instructions.isNotEmpty()) {
+        Log.d("RecipeDetails", "Instructions in startCooking: $instructions")
+        // Ensure that instructions are available and not empty
+        if (this.instructions != null && this.instructions.isNotEmpty()) {
             val intent = Intent(this@RecipeDetails, CookingActivity::class.java)
             intent.putExtra("id", id) // Pass the recipe ID
             intent.putExtra("name", textViewMealName.text.toString()) // Pass the recipe name
             intent.putExtra("image", imageViewMealImage.tag as? String ?: "") // Pass the image URL
-            intent.putStringArrayListExtra("instructions", instructions)  // Pass instructions to the next activity
+            intent.putStringArrayListExtra("instructions", this.instructions)  // Pass instructions to the next activity
             startActivity(intent)
         } else {
             Toast.makeText(this, "Instructions not available", Toast.LENGTH_SHORT).show()

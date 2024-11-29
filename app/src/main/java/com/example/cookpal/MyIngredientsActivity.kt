@@ -23,6 +23,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.example.cookpal.Models.AIRecipe
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.gson.Gson
@@ -124,14 +125,18 @@ class MyIngredientsActivity : AppCompatActivity() {
         recyclerIngredients.adapter = ingredientsAdapter
 
         buttonAddIngredient.setOnClickListener {
-            val ingredient = editTextIngredient.text.toString()
+            val ingredient = editTextIngredient.text.toString().trim()
             if (ingredient.isNotEmpty()) {
-                ingredientsList.add(ingredient)
-                ingredientsAdapter.notifyDataSetChanged()
-                editTextIngredient.text.clear()
-                saveIngredients()
+                if (ingredientsList.contains(ingredient.uppercase())) {
+                    showToast("Ingredient already added.")
+                } else {
+                    ingredientsList.add(ingredient.uppercase())
+                    ingredientsAdapter.notifyItemInserted(ingredientsList.size - 1)
+                    editTextIngredient.text.clear()
+                    saveIngredients()
+                }
             } else {
-                showToast("Please enter an ingredient")
+                showToast("Please enter an ingredient.")
             }
         }
 
@@ -173,15 +178,14 @@ class MyIngredientsActivity : AppCompatActivity() {
             firestore.collection(ingredientsCollection).document(userId)
                 .get()
                 .addOnSuccessListener { document ->
-                    if (document.exists()) {
-                        val savedIngredients = document.get("ingredientsList") as? List<String>
-                        ingredientsList.clear()
-                        savedIngredients?.let { ingredientsList.addAll(it) }
-                        ingredientsAdapter.notifyDataSetChanged()
-                    }
+                    val savedIngredients = document.get("ingredientsList") as? List<String>
+                    ingredientsList.clear()
+                    savedIngredients?.map { it.uppercase() }?.let { ingredientsList.addAll(it) }
+                    ingredientsAdapter.notifyDataSetChanged()
                 }
                 .addOnFailureListener { e ->
-                    showToast("Failed to load ingredients: ${e.message}")
+                    Log.e("MyIngredientsActivity", "Failed to load ingredients: ${e.message}", e)
+                    showToast("Unable to load ingredients. Please try again later.")
                 }
         }
     }
@@ -192,9 +196,11 @@ class MyIngredientsActivity : AppCompatActivity() {
             firestore.collection(ingredientsCollection).document(userId)
                 .set(ingredientsData)
                 .addOnSuccessListener {
-                    showToast("Ingredients saved successfully")                }
+                    Log.d("MyIngredientsActivity", "Ingredients saved successfully.")
+                }
                 .addOnFailureListener { e ->
-                    showToast("Failed to save ingredients: ${e.message}")
+                    Log.e("MyIngredientsActivity", "Failed to save ingredients: ${e.message}", e)
+                    showToast("Failed to save ingredients. Please check your connection.")
                 }
         }
     }
@@ -223,39 +229,70 @@ class MyIngredientsActivity : AppCompatActivity() {
     }
 
     private fun editIngredient(position: Int) {
-        val currentIngredient = ingredientsList[position]
-        editTextIngredient.setText(currentIngredient)
-        buttonAddIngredient.text = "Update"
-        buttonAddIngredient.setOnClickListener {
-            val updatedIngredient = editTextIngredient.text.toString()
-            if (updatedIngredient.isNotEmpty()) {
-                ingredientsList[position] = updatedIngredient
-                ingredientsAdapter.notifyItemChanged(position)
-                editTextIngredient.text.clear()
-                buttonAddIngredient.text = "Add"
-                buttonAddIngredient.setOnClickListener {
-                    val ingredient = editTextIngredient.text.toString()
-                    if (ingredient.isNotEmpty()) {
-                        ingredientsList.add(ingredient)
-                        ingredientsAdapter.notifyDataSetChanged()
-                        editTextIngredient.text.clear()
-                        saveIngredients()
-                    } else {
-                        showToast("Please enter an ingredients.")
-                    }
+        if (position in ingredientsList.indices) {
+            val currentIngredient = ingredientsList[position]
+            editTextIngredient.setText(currentIngredient)
+
+            buttonAddIngredient.text = "Update"
+            buttonAddIngredient.setOnClickListener {
+                val updatedIngredient = editTextIngredient.text.toString().trim()
+                if (updatedIngredient.isEmpty()) {
+                    showToast("Please enter a valid ingredient.")
+                } else if (ingredientsList.contains(updatedIngredient.uppercase()) && currentIngredient.uppercase() != updatedIngredient.uppercase()) {
+                    showToast("This ingredient already exists.")
+                } else {
+                    ingredientsList[position] = updatedIngredient.uppercase()
+                    ingredientsAdapter.notifyItemChanged(position)
+                    resetAddIngredientButton()
+                    saveIngredients()
+                    // Clear the input field
+                    editTextIngredient.setText("")
+                    showToast("Ingredient updated successfully.")
                 }
-                saveIngredients()
+            }
+        } else {
+            Log.e("MyIngredientsActivity", "Invalid ingredient selection for editing at position: $position")
+            showToast("Invalid selection.")
+        }
+    }
+
+    private fun resetAddIngredientButton() {
+        buttonAddIngredient.text = "Add"
+        buttonAddIngredient.setOnClickListener {
+            val ingredient = editTextIngredient.text.toString().trim()
+            if (ingredient.isEmpty()) {
+                showToast("Please enter an ingredient.")
+            } else if (ingredientsList.contains(ingredient.uppercase())) {
+                showToast("Ingredient already added.")
             } else {
-                showToast("Please enter an ingredients.")
+                ingredientsList.add(ingredient.uppercase())
+                ingredientsAdapter.notifyItemInserted(ingredientsList.size - 1)
+                editTextIngredient.text.clear()
+                saveIngredients()
             }
         }
     }
 
     private fun deleteIngredient(position: Int) {
-        ingredientsList.removeAt(position)
-        ingredientsAdapter.notifyItemRemoved(position)
-        saveIngredients()
+        if (position in ingredientsList.indices) { // Safely check position
+            val deletedIngredient = ingredientsList.removeAt(position)
+            ingredientsAdapter.notifyItemRemoved(position)
+
+            // If the list is now empty, notify the adapter
+            if (ingredientsList.isEmpty()) {
+                ingredientsAdapter.notifyDataSetChanged()
+            }
+
+            // Save updated list to Firebase
+            saveIngredients()
+            showToast("Ingredient '$deletedIngredient' deleted.")
+        } else {
+            Log.e("MyIngredientsActivity", "Attempted to delete invalid position: $position")
+            showToast("Invalid position. Unable to delete.")
+        }
     }
+
+
 
     private fun makeOpenAIRequest(
         messages: List<RequestMessage>,
@@ -300,7 +337,6 @@ class MyIngredientsActivity : AppCompatActivity() {
                 }
             })
     }
-
 
     private fun preprocessIngredients(ingredients: List<String>): List<String> {
         // Normalize input
@@ -461,15 +497,65 @@ class MyIngredientsActivity : AppCompatActivity() {
             showRecipeSuggestion(cachedRecipe)
         } else {
             val messages = listOf(
-                RequestMessage("system", "You are a professional chef, providing clear, concise, and authentic recipes that are as structured and easy to follow as possible. Strictly avoid conversational language or pleasantries. Focus only on the recipe content."),
-                RequestMessage("user", "Provide a recipe using these ingredients: ${ingredients.joinToString(", ")}. Include a dish name, a brief description of the dish (1-2 sentences max), followed by the ingredients list, and detailed step-by-step cooking instructions.")
+                RequestMessage("system",
+                    """
+                            You are a professional chef, providing clear, concise, and authentic recipes that are well-structured and easy to follow. 
+                            Each recipe should strictly follow the JSON structure and contain the following fields:
+                            {
+                                "title": "The name of the dish",
+                                "summary": "A brief, 1-2 sentence description of the dish",
+                                "ingredients": ["List", "of", "ingredients"],
+                                "instructions": ["Detailed", "step-by-step", "cooking", "instructions"],
+                                "imageURL": "A valid URL pointing to an image of the dish (if available)"
+                            }
+                            Ensure that the output is **strictly in JSON format** with no additional text or explanation.
+                            Avoid conversational language or pleasantries. Focus solely on providing the recipe content in the above structure.
+                            """),
+                RequestMessage("user",
+                    """
+                            Provide a recipe using these ingredients: ${ingredients.joinToString(", ")}. 
+                            The recipe should strictly follow the JSON format below:
+                            {
+                                "title": "The name of the dish",
+                                "summary": "A brief description of the dish (1-2 sentences max)",
+                                "ingredients": ["List", "all", "the", "ingredients"],
+                                "instructions": ["Provide", "detailed", "step-by-step", "cooking", "instructions"],
+                                "imageURL": "A URL pointing to an image of the dish (if available)"
+                            }
+                            """)
             )
 
-            makeOpenAIRequest(messages, maxTokens = 2048, temperature = 0.7f, topP = 0.9f) { recipe ->
-                if (recipe != null) {
-                    // Save the recipe to the cache
-                    saveRecipeToCache(ingredientsKey, recipe)
-                    showRecipeSuggestion(recipe)
+
+            makeOpenAIRequest(messages, maxTokens = 2048, temperature = 0.7f, topP = 0.9f) { response ->
+                if (response != null) {
+                    Log.d("OpenAIResponse", "Raw AI response: $response")
+
+                    try {
+                        val jsonResponse = JSONObject(response)
+
+                        // Parse AI response to create AIRecipe object
+                        val title = jsonResponse.optString("title","No title")
+                        val summary = jsonResponse.optString("summary","No summary available")
+                        val image = jsonResponse.optString("image", "")
+                        val ingredients = jsonResponse.optJSONArray("ingredients")?.toList() ?: emptyList()
+                        val instructions = jsonResponse.optJSONArray("instructions")?.toList() ?: emptyList()
+
+                        val aiRecipe = AIRecipe(
+                            title = title,
+                            summary = summary,
+                            image = image,
+                            ingredients = ingredients,
+                            instructions = instructions
+                        )
+
+                        // Save the recipe to the cache
+                        saveRecipeToCache(ingredientsKey, aiRecipe)
+                        showRecipeSuggestion(aiRecipe)
+
+                    } catch (e: JSONException) {
+                        Log.e("ChatGPT", "Error parsing AI response: ${e.message}")
+                        showToast("Failed to parse AI response.")
+                    }
                 } else {
                     showToast("Failed to generate a recipe.")
                     Log.e("ChatGPT", "No content in response body.")
@@ -478,13 +564,19 @@ class MyIngredientsActivity : AppCompatActivity() {
         }
     }
 
-    private fun showRecipeSuggestion(recipe: String) {
-        val dialog = AlertDialog.Builder(this)
-            .setTitle("Recipe Suggestion")
-            .setMessage(recipe)
-            .setPositiveButton("OK", null)
-            .create()
-        dialog.show()
+    private fun showRecipeSuggestion(aiRecipe: AIRecipe) {
+        val intent = Intent(this, RecipeDetails::class.java)
+
+        // Pass the data to the new activity using intent extras
+        intent.putExtra("isAIRecipe", true) // Set the flag for AI-generated recipe
+        intent.putExtra("title", aiRecipe.title)
+        intent.putExtra("summary", aiRecipe.summary)
+        intent.putExtra("image", aiRecipe.image) // Pass image URL
+        intent.putStringArrayListExtra("ingredients", ArrayList(aiRecipe.ingredients)) // Pass ingredients list
+        intent.putStringArrayListExtra("instructions", ArrayList(aiRecipe.instructions)) // Pass instructions list
+
+        // Start the new activity
+        startActivity(intent)
     }
 
     private fun showAlertDialog(title: String, message: String) {
@@ -510,14 +602,26 @@ class MyIngredientsActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun saveRecipeToCache(key: String, recipe: String) {
+    private fun saveRecipeToCache(key: String, aiRecipe: AIRecipe) {
         val sharedPreferences = getSharedPreferences("RecipeCache", Context.MODE_PRIVATE)
-        sharedPreferences.edit().putString(key, recipe).apply()
+        val editor = sharedPreferences.edit()
+
+        // Serialize the AIRecipe object to JSON using Gson
+        val jsonRecipe = Gson().toJson(aiRecipe)
+        editor.putString(key, jsonRecipe)
+        editor.apply()
     }
 
-    private fun getCachedRecipe(key: String): String? {
+    private fun getCachedRecipe(key: String): AIRecipe? {
         val sharedPreferences = getSharedPreferences("RecipeCache", Context.MODE_PRIVATE)
-        return sharedPreferences.getString(key, null)
+        val jsonRecipe = sharedPreferences.getString(key, null)
+
+        return if (jsonRecipe != null) {
+            // Deserialize the JSON back into an AIRecipe object
+            Gson().fromJson(jsonRecipe, AIRecipe::class.java)
+        } else {
+            null
+        }
     }
 
     fun Context.showToast(message: String, duration: Int = Toast.LENGTH_SHORT) {
