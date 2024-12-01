@@ -76,9 +76,9 @@ class UserPreference : AppCompatActivity() {
         nutritionalPreferencesTextView = findViewById(R.id.nutritionalPreferences)
         dietaryRestrictionsTextView = findViewById(R.id.dietaryRestrictions)
 
-        displayedSensitivitiesTextView.setOnClickListener { showPreferencesDialog("Displayed Sensitivities", listOf("Peanuts", "Gluten", "Dairy")) }
-        nutritionalPreferencesTextView.setOnClickListener { showPreferencesDialog("Nutritional Preferences", listOf("Low-Carb", "High-Protein", "Keto")) }
-        dietaryRestrictionsTextView.setOnClickListener { showPreferencesDialog("Dietary Restrictions", listOf("Vegan", "Vegetarian", "Pescatarian")) }
+        displayedSensitivitiesTextView.setOnClickListener { showPreferencesDialog("Displayed Sensitivities", listOf("Peanuts", "Gluten", "Dairy", "Soy", "Eggs", "Tree Nuts", "Shellfish", "Fish", "Wheat", "Corn", "Sesame")) }
+        nutritionalPreferencesTextView.setOnClickListener { showPreferencesDialog("Nutritional Preferences", listOf("Low-Carb", "High-Protein", "Keto", "Low-Fat", "Low-Sodium", "High-Fiber", "Low-Sugar", "Paleo", "Mediterranean", "Intermittent Fasting", "Whole30")) }
+        dietaryRestrictionsTextView.setOnClickListener { showPreferencesDialog("Dietary Restrictions", listOf("Vegan", "Vegetarian", "Pescatarian", "Halal", "Kosher", "Lacto-Vegetarian", "Ovo-Vegetarian", "Dairy-Free", "Gluten-Free", "Nut-Free")) }
 
 
 
