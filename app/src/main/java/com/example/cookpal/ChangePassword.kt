@@ -36,12 +36,24 @@ class ChangePassword : AppCompatActivity() {
             val password = passwordEditText.text.toString().trim()
             val confirmPassword = confirmPasswordEditText.text.toString().trim()
 
-            if (password == confirmPassword) {
-                resetPassword(password)
-            } else {
+            // Regular expression to validate password
+            val passwordRegex = Regex("^(?=.*[A-Za-z])(?=.*\\d)(?=.*[@\$!%*#?&])[A-Za-z\\d@\$!%*#?&]{8,}$")
+
+            if (password.isEmpty() || confirmPassword.isEmpty()) {
+                Toast.makeText(this, "Password fields cannot be empty", Toast.LENGTH_SHORT).show()
+            } else if (!password.matches(passwordRegex)) {
+                Toast.makeText(
+                    this,
+                    "Password must be at least 8 characters long, contain letters, numbers, and symbols",
+                    Toast.LENGTH_SHORT
+                ).show()
+            } else if (password != confirmPassword) {
                 Toast.makeText(this, "Passwords do not match", Toast.LENGTH_SHORT).show()
+            } else {
+                resetPassword(password)
             }
         }
+
     }
 
     private fun resetPassword(password: String) {

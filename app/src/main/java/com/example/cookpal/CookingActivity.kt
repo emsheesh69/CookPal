@@ -91,6 +91,8 @@ class CookingActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val intent = intent
+        instructions = intent.getStringArrayListExtra("instructions") ?: arrayListOf()
 
         textToSpeech = TextToSpeech(this, object : TextToSpeech.OnInitListener {
             override fun onInit(status: Int) {
@@ -196,45 +198,90 @@ class CookingActivity : AppCompatActivity() {
 
     }
 
+    private val glossary = mapOf(
+        "bake" to "maghurno",
+        "boil" to "pakuluin",
+        "broth" to "sabaw",
+        "chop" to "hiwa",
+        "dice" to "tadtarin",
+        "fry" to "magprito",
+        "grill" to "i-ihaw",
+        "mince" to "durugin",
+        "mix" to "haluin",
+        "peel" to "balatan",
+        "roast" to "iihaw",
+        "sauté" to "igisa",
+        "season" to "timplahan",
+        "simmer" to "pakuluan ng mahina",
+        "slice" to "hiwain",
+        "steam" to "pasingawan",
+        "stir" to "haluin",
+        "strain" to "salain",
+        "whisk" to "pagsamahin o batihin",
+        "marinate" to "ibabad sa timpla",
+        "knead" to "masahin",
+        "garnish" to "palamutihan",
+        "blend" to "ihalo sa blender",
+        "crush" to "durugin",
+        "drain" to "salain o alisin ang tubig"
+    )
+
     private fun translateText(input: String, targetLanguage: String, callback: (String) -> Unit) {
-        val url = "https://translation.googleapis.com/language/translate/v2"
-        val requestBody = """
+        // Preprocess text using glossary
+        val preTranslatedText = glossary.entries.fold(input) { text, (englishTerm, filipinoTerm) ->
+            text.replace(englishTerm, filipinoTerm, ignoreCase = true)
+        }
+
+        // If the target language is not Filipino, call the Cloud Translation API
+        if (targetLanguage != "tl") {
+            // Google Translate API URL
+            val url = "https://translation.googleapis.com/language/translate/v2"
+
+            val requestBody = """
         {
-            "q": "$input",
+            "q": "$preTranslatedText",
             "target": "$targetLanguage",
             "format": "text"
         }
-    """.trimIndent()
-        Thread {
-            try {
-                val connection = (URL("$url?key=$apiKey").openConnection() as HttpURLConnection).apply {
-                    requestMethod = "POST"
-                    doOutput = true
-                    setRequestProperty("Content-Type", "application/json")
-                    outputStream.write(requestBody.toByteArray())
-                }
+        """.trimIndent()
 
-                val responseCode = connection.responseCode
-                if (responseCode == 200) {
-                    val response = connection.inputStream.bufferedReader().readText()
-                    val translatedText = JSONObject(response)
-                        .getJSONObject("data")
-                        .getJSONArray("translations")
-                        .getJSONObject(0)
-                        .getString("translatedText")
+            // Asynchronous HTTP request
+            Thread {
+                try {
+                    val connection = (URL("$url?key=$apiKey").openConnection() as HttpURLConnection).apply {
+                        requestMethod = "POST"
+                        doOutput = true
+                        setRequestProperty("Content-Type", "application/json")
+                        outputStream.write(requestBody.toByteArray())
+                    }
 
-                    // Invoke the callback with the translated text
-                    runOnUiThread { callback(translatedText) }
-                } else {
-                    Log.e("Translation", "Failed with response code: $responseCode")
-                    runOnUiThread { callback(input) } // Fallback to original text
+                    val responseCode = connection.responseCode
+                    if (responseCode == 200) {
+                        val response = connection.inputStream.bufferedReader().readText()
+                        val translatedText = JSONObject(response)
+                            .getJSONObject("data")
+                            .getJSONArray("translations")
+                            .getJSONObject(0)
+                            .getString("translatedText")
+
+                        // Invoke the callback with the translated text
+                        runOnUiThread { callback(translatedText) }
+                    } else {
+                        Log.e("Translation", "Failed with response code: $responseCode")
+                        runOnUiThread { callback(preTranslatedText) } // Fallback to pre-translated text
+                    }
+                } catch (e: Exception) {
+                    Log.e("Translation", "Error: ${e.message}")
+                    runOnUiThread { callback(preTranslatedText) } // Fallback to pre-translated text
                 }
-            } catch (e: Exception) {
-                Log.e("Translation", "Error: ${e.message}")
-                runOnUiThread { callback(input) } // Fallback to original text
-            }
-        }.start()
+            }.start()
+        } else {
+            // If target language is Filipino, use pre-translated text
+            callback(preTranslatedText)
+        }
     }
+
+
     private fun saveCookingHistory() {
         val user = FirebaseAuth.getInstance().currentUser
         if (user != null) {
@@ -327,7 +374,7 @@ class CookingActivity : AppCompatActivity() {
 
             override fun onRmsChanged(rmsdB: Float) {
                 lastRmsTimestamp = System.currentTimeMillis()
-                if (rmsdB > 2) {
+                if (rmsdB > 4) {
                     updateMicStatus("Hearing you...")
                 } else {
                     updateMicStatus("Listening...")
@@ -349,10 +396,13 @@ class CookingActivity : AppCompatActivity() {
 
                     if (isValidCommand(command)) {
                         updateMicStatus("Command recognized: $command")
-                        handleVoiceCommand(command) // This should be called when a valid command is recognized
+                        handleVoiceCommand(command)
                     } else {
                         updateMicStatus("Invalid command. Try again...")
-                        speakOut("Please say next or previous")
+                        when (selectedLanguage) {
+                            "Filipino" -> speakOut("Pakisabi po susunod o bumalik")
+                            else -> speakOut("Please say next or previous")
+                        }
                     }
                 }
                 restartListeningWithDelay(1000)
@@ -416,10 +466,35 @@ class CookingActivity : AppCompatActivity() {
         })
     }
     private fun isValidCommand(command: String): Boolean {
+        return when (selectedLanguage) {
+            "Filipino" -> isValidFilipinoCommand(command)
+            else -> isValidEnglishCommand(command)
+        }
+    }
+
+    private fun isValidEnglishCommand(command: String): Boolean {
         val validCommands = listOf(
             "next", "forward", "continue", "go next", "next step",
-            "back", "previous", "go back", "before", "previous step", "repeat", "again",
+            "back", "previous", "go back", "before", "previous step",
+            "repeat", "again",
             "start timer", "set timer", "begin timer"
+        )
+        return validCommands.any { command.contains(it) }
+    }
+
+    private fun isValidFilipinoCommand(command: String): Boolean {
+        val validCommands = listOf(
+            "susunod", "sunod", "magpatuloy", "tuloy",
+            "sunod na hakbang", "susunod na hakbang",
+
+            "bumalik", "balik", "nakaraan", "dating",
+            "dati", "nakaraang hakbang", "bumalik sa dati",
+
+            "ulitin", "ulit", "paulit", "sabihin muli",
+            "ulitin ito", "paulit-ulit",
+
+            "magsimula ng timer", "i-timer",
+            "maglagay ng timer", "magtakda ng oras"
         )
         return validCommands.any { command.contains(it) }
     }
@@ -459,51 +534,92 @@ class CookingActivity : AppCompatActivity() {
     }
 
     private fun handleVoiceCommand(command: String) {
-        when {
+        val normalizedCommand = command.toLowerCase()
 
+        when (selectedLanguage) {
+            "Filipino" -> handleFilipinoCommand(normalizedCommand)
+            else -> handleEnglishCommand(normalizedCommand)
+        }
+    }
+
+    private fun handleEnglishCommand(command: String) {
+        when {
             command.contains("start timer") || command.contains("set timer") ||
                     command.contains("begin timer") -> {
                 handleTimerCommand(command)
             }
 
-
             command.contains("next") || command.contains("forward") ||
                     command.contains("continue") -> {
-                if (currentStepIndex < instructions.size - 1) {
-                    runOnUiThread {
-                        currentStepIndex++
-                        updateInstructionView()
-                        val feedback = "Moving to step ${currentStepIndex + 1}"
-                        updateMicStatus(feedback)
-                        speakOut("$feedback: ${textViewCookingInstruction.text}")
-                    }
-                } else {
-                    val message = "Already at the last step"
-                    updateMicStatus(message)
-                    speakOut(message)
-                }
+                handleNextStep("Moving to step", "Already at the last step")
             }
+
             command.contains("back") || command.contains("previous") ||
                     command.contains("before") -> {
-                if (currentStepIndex > 0) {
-                    runOnUiThread {
-                        currentStepIndex--
-                        updateInstructionView()
-                        val feedback = "Going back to step ${currentStepIndex + 1}"
-                        updateMicStatus(feedback)
-                        speakOut("$feedback: ${textViewCookingInstruction.text}")
-                    }
-                } else {
-                    val message = "Already at the first step"
-                    updateMicStatus(message)
-                    speakOut(message)
-                }
+                handlePreviousStep("Going back to step", "Already at the first step")
             }
+
             command.contains("repeat") || command.contains("again") -> {
                 val feedback = "Repeating step ${currentStepIndex + 1}"
                 updateMicStatus(feedback)
                 speakOut("$feedback: ${textViewCookingInstruction.text}")
             }
+        }
+    }
+
+    private fun handleFilipinoCommand(command: String) {
+        when {
+            command.contains("magsimula ng timer") || command.contains("i-timer") ||
+                    command.contains("maglagay ng timer") || command.contains("magtakda ng oras") -> {
+                handleTimerCommand(command)
+            }
+
+            command.contains("susunod") || command.contains("sunod") ||
+                    command.contains("magpatuloy") || command.contains("tuloy") -> {
+                handleNextStep("Lilipat sa hakbang", "Nasa huling hakbang na")
+            }
+
+            command.contains("bumalik") || command.contains("nakaraan") ||
+                    command.contains("dating") || command.contains("dati") -> {
+                handlePreviousStep("Babalik sa hakbang", "Nasa unang hakbang na")
+            }
+
+            command.contains("ulitin") || command.contains("ulit") ||
+                    command.contains("paulit") || command.contains("sabihin muli") -> {
+                val feedback = "Inuulit ang hakbang ${currentStepIndex + 1}"
+                updateMicStatus(feedback)
+                speakOut("$feedback: ${textViewCookingInstruction.text}")
+            }
+        }
+    }
+
+    private fun handleNextStep(progressMessage: String, limitMessage: String) {
+        if (currentStepIndex < instructions.size - 1) {
+            runOnUiThread {
+                currentStepIndex++
+                updateInstructionView()
+                val feedback = "$progressMessage ${currentStepIndex + 1}"
+                updateMicStatus(feedback)
+                speakOut("$feedback: ${textViewCookingInstruction.text}")
+            }
+        } else {
+            updateMicStatus(limitMessage)
+            speakOut(limitMessage)
+        }
+    }
+
+    private fun handlePreviousStep(progressMessage: String, limitMessage: String) {
+        if (currentStepIndex > 0) {
+            runOnUiThread {
+                currentStepIndex--
+                updateInstructionView()
+                val feedback = "$progressMessage ${currentStepIndex + 1}"
+                updateMicStatus(feedback)
+                speakOut("$feedback: ${textViewCookingInstruction.text}")
+            }
+        } else {
+            updateMicStatus(limitMessage)
+            speakOut(limitMessage)
         }
     }
     private fun handleTimerCommand(command: String) {
