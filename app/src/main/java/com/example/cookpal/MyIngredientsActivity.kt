@@ -424,7 +424,7 @@ class MyIngredientsActivity : AppCompatActivity() {
             ),
             RequestMessage(
                 "user",
-                        """
+                """
                         Validate the following ingredients for cooking: ${truncatedIngredients.joinToString(", ")}.
                         Tasks:
                         1. Identify and return a "refinedIngredients" list with logical, valid cooking ingredients. Remove any illogical or strange ingredients.
@@ -567,15 +567,12 @@ class MyIngredientsActivity : AppCompatActivity() {
     private fun showRecipeSuggestion(aiRecipe: AIRecipe) {
         val intent = Intent(this, RecipeDetails::class.java)
 
-        // Pass the data to the new activity using intent extras
         intent.putExtra("isAIRecipe", true) // Set the flag for AI-generated recipe
         intent.putExtra("title", aiRecipe.title)
         intent.putExtra("summary", aiRecipe.summary)
         intent.putExtra("image", aiRecipe.image) // Pass image URL
         intent.putStringArrayListExtra("ingredients", ArrayList(aiRecipe.ingredients)) // Pass ingredients list
         intent.putStringArrayListExtra("instructions", ArrayList(aiRecipe.instructions)) // Pass instructions list
-
-        // Start the new activity
         startActivity(intent)
     }
 

@@ -3,6 +3,7 @@ package com.example.cookpal
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -23,6 +24,7 @@ import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.GenericTypeIndicator
 import com.google.firebase.database.ValueEventListener
 
 
@@ -74,7 +76,6 @@ class UserActivity : AppCompatActivity(), ClickedRecipeListener {
 
         tabPreferences.setOnClickListener {
             setTab(tabPreferences)
-            // Redirect to the Preferences screen
             startActivity(Intent(this, UserPreference::class.java))
             overridePendingTransition(0, 0)
             finish()
@@ -82,7 +83,6 @@ class UserActivity : AppCompatActivity(), ClickedRecipeListener {
 
         tabActivity.setOnClickListener {
             setTab(tabActivity)
-            // Redirect to the UserActivity screen
             startActivity(Intent(this, UserActivity::class.java))
             overridePendingTransition(0, 0)
             finish()
@@ -226,7 +226,6 @@ class UserActivity : AppCompatActivity(), ClickedRecipeListener {
     private fun setTab(selectedTab: TextView) {
         resetTabs()
 
-        // Set the selected tab's text color to highlight color
         selectedTab.setTextColor(ContextCompat.getColor(this, R.color.highlight_color))
     }
 
@@ -238,8 +237,41 @@ class UserActivity : AppCompatActivity(), ClickedRecipeListener {
     }
 
     override fun onRecipeClicked(id: String) {
-        val intent = Intent(this, RecipeDetails::class.java)
-        intent.putExtra("id", id)
-        startActivity(intent)
+        val userId = FirebaseAuth.getInstance().currentUser?.uid
+        val isAIRecipe = false
+        if (userId != null) {
+            val databaseRef = FirebaseDatabase.getInstance().getReference("users/$userId/Favorites/$id")
+
+            databaseRef.get().addOnSuccessListener { dataSnapshot ->
+                if (dataSnapshot.exists()) {
+                    val recipe = dataSnapshot.getValue(object : GenericTypeIndicator<Map<String, Any>>() {})
+
+                    val title = recipe?.get("name") as? String ?: "No title"
+                    val image = recipe?.get("image") as? String ?: ""
+                    val summary = recipe?.get("summary") as? String ?: ""
+                    val ingredients = recipe?.get("ingredients") as? ArrayList<String> ?: arrayListOf()
+                    val instructions = recipe?.get("instructions") as? ArrayList<String> ?: arrayListOf()
+
+                    Log.d("RecipeDetails", "Ingredients: $ingredients")
+                    Log.d("RecipeDetails", "Instructions: $instructions")
+
+                    val intent = Intent(this, RecipeDetails::class.java).apply {
+                        putExtra("title", title)
+                        putExtra("image", image)
+                        putExtra("summary", summary)
+                        putExtra("id",id)
+                        putStringArrayListExtra("ingredients", ingredients)
+                        putStringArrayListExtra("instructions", instructions)
+                        putExtra("isAIRecipe", isAIRecipe)
+                    }
+
+                    startActivity(intent)
+                }
+            }.addOnFailureListener {
+                Log.e("Favorites", "Error retrieving favorite recipe: ${it.message}")
+            }
+        } else {
+            Log.e("Favorites", "User is not authenticated.")
+        }
     }
 }

@@ -45,7 +45,16 @@ class CookingHistoryAdapter(
         fun bind(recipe: RecipeModel) {
             recipeName.text = recipe.name
             cookingDate.text = recipe.date
-            Picasso.get().load(recipe.image).into(recipeImage)
+
+            val imageUrl = recipe.image
+            if (!imageUrl.isNullOrEmpty()) {
+                Picasso.get()
+                    .load(imageUrl)
+                    .placeholder(R.drawable.cookpal)
+                    .into(recipeImage)
+            } else {
+                recipeImage.setImageResource(R.drawable.cookpal)
+            }
         }
     }
 }
