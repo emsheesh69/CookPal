@@ -50,6 +50,8 @@ class MyIngredientsActivity : AppCompatActivity() {
     private lateinit var sharedPreferences: SharedPreferences
 
     private var ingredientsList: MutableList<String> = mutableListOf()
+    private lateinit var foodPreferences: Map<String, Any>
+
 
     private val prefsFileName = "MyIngredientsPrefs"
     private val firestore = FirebaseFirestore.getInstance()
@@ -71,7 +73,6 @@ class MyIngredientsActivity : AppCompatActivity() {
 
         // Log the OpenAI API key to check if it's loaded correctly
         Log.d("ChatGPT", "OpenAI API Key: ${BuildConfig.OPENAI_API_KEY}")
-
 
         val textClearList: TextView = findViewById(R.id.textClearList)
 
@@ -109,7 +110,12 @@ class MyIngredientsActivity : AppCompatActivity() {
             return
         }
 
+        // Initialize shared preferences for ingredient data
         sharedPreferences = getSharedPreferences(prefsFileName, Context.MODE_PRIVATE)
+
+        // Load food preferences (Dietary restrictions, sensitivities, etc.)
+        foodPreferences = loadFoodPreferences()
+
         initViews()
         loadIngredients()
     }
@@ -338,6 +344,27 @@ class MyIngredientsActivity : AppCompatActivity() {
             })
     }
 
+    private fun loadFoodPreferences(): Map<String, Any> {
+        val sharedPreferences = getSharedPreferences("user_prefs", MODE_PRIVATE)
+
+        // Load the saved food preferences
+        val dietaryRestrictions = sharedPreferences.getStringSet("dietary_restrictions", emptySet()) ?: emptySet()
+        val displayedSensitivities = sharedPreferences.getStringSet("displayed_sensitivities", emptySet()) ?: emptySet()
+        val nutritionalPreferences = sharedPreferences.getStringSet("nutritional_preferences", emptySet()) ?: emptySet()
+
+        // Log the preferences for debugging
+        Log.d("MyIngredientsActivity", "Loaded Displayed Sensitivities: $displayedSensitivities")
+        Log.d("MyIngredientsActivity", "Loaded Nutritional Preferences: $nutritionalPreferences")
+        Log.d("MyIngredientsActivity", "Loaded Dietary Restrictions: $dietaryRestrictions")
+
+        // Return the preferences as a Map
+        return mapOf(
+            "dietaryRestrictions" to dietaryRestrictions,
+            "displayedSensitivities" to displayedSensitivities,
+            "nutritionalPreferences" to nutritionalPreferences
+        )
+    }
+
     private fun preprocessIngredients(ingredients: List<String>): List<String> {
         // Normalize input
         return ingredients
@@ -363,20 +390,13 @@ class MyIngredientsActivity : AppCompatActivity() {
         }
 
         // Validate Ingredients
-        validateIngredients(preprocessedIngredients) { isValid, refinedList, feedbackMessage, hasStrangeIngredients ->
+        validateIngredients(preprocessedIngredients, foodPreferences) { isValid, refinedList, feedbackMessage, hasStrangeIngredients, violatedPreferences ->
             if (isValid) {
-//                ingredientsList = refinedList.toMutableList()
-//                showAlertDialog("Your CookPal's Feedback", feedbackMessage ?: "Ingredients look great!")
-//
-//                Log.d("ChatGPT", "Validated Ingredients: ${ingredientsList.joinToString(", ")}")
-//                // Ingredients are valid; proceed with recipe suggestion
-//                Log.d("ChatGPT", "All ingredients are valid. Proceeding with recipe generation.")
-
                 val dialogBuilder = AlertDialog.Builder(this)
                     .setTitle("Your CookPal's Feedback")
                     .setMessage(feedbackMessage)
 
-                if (hasStrangeIngredients) {
+                if (hasStrangeIngredients || violatedPreferences.isNotEmpty()) {
                     dialogBuilder.setNeutralButton("Creative Recipe with All Ingredients") { _, _ ->
                         generateRecipe(preprocessedIngredients) // Full list, including strange ingredients
                     }
@@ -399,28 +419,56 @@ class MyIngredientsActivity : AppCompatActivity() {
         }
     }
 
-    private fun validateIngredients(ingredients: List<String>, callback: (Boolean, List<String>, String?, Boolean) -> Unit) {
+    private fun validateIngredients(ingredients: List<String>, foodPreferences: Map<String, Any>, callback: (Boolean, List<String>, String?, Boolean, List<String>) -> Unit) {
         val preprocessedIngredients = preprocessIngredients(ingredients)
         val truncatedIngredients = preprocessedIngredients.take(10)
 
+        // Extract preferences from the provided map
+        val dietaryRestrictions = foodPreferences["dietaryRestrictions"] as Set<String>
+        val displayedSensitivities = foodPreferences["displayedSensitivities"] as Set<String>
+        val nutritionalPreferences = foodPreferences["nutritionalPreferences"] as Set<String>
+
+        Log.d("UserPreferences", "Dietary Restrictions: ${dietaryRestrictions.joinToString(", ")}")
+        Log.d("UserPreferences", "Displayed Sensitivities: ${displayedSensitivities.joinToString(", ")}")
+        Log.d("UserPreferences", "Nutritional Preferences: ${nutritionalPreferences.joinToString(", ")}")
+
+        // Prepare the user preference details
+        val preferenceDetails = """
+            User Preferences:
+            ${if (displayedSensitivities.isNotEmpty()) "- Displayed Sensitivities: ${displayedSensitivities.joinToString(", ")}" else "- Displayed Sensitivities: None"}
+            ${if (nutritionalPreferences.isNotEmpty()) "- Nutritional Preferences: ${nutritionalPreferences.joinToString(", ")}" else "- Nutritional Preferences: None"}
+            ${if (dietaryRestrictions.isNotEmpty()) "- Dietary Restrictions: ${dietaryRestrictions.joinToString(", ")}" else "- Dietary Restrictions: None"}
+        """.trimIndent()
+
+        Log.d("OpenAIRequest", "Sending the following data to AI:")
         Log.d("OpenAIRequest", "Ingredients to validate: ${truncatedIngredients.joinToString(", ")}")
+        Log.d("OpenAIRequest", "Preferences:\n$preferenceDetails")
+
         val messages = listOf(
             RequestMessage(
                 "system",
                 """
-                        You are a professional chef, culinary adviser, and data parser. Your role is to validate cooking ingredients and provide clear, actionable feedback. Respond strictly in JSON format.
+                        You are a professional chef, culinary adviser, nutrition expert, and data parser. 
+                        Your role is to validate cooking ingredients, provide clear, actionable feedback, and ensure they comply with user preferences: $preferenceDetails. 
+                        Respond strictly in JSON format.
                     
-                        For each input:
-                        - Flag any non-ingredient entries such as sentences, questions, incomprehensible or irrelevant words as "invalidIngredients."
+                        Validation Criteria:
+                        - Identify and categorize non-food item or illogical entries such as sentences, questions, incomprehensible or irrelevant words as "invalidIngredients."
+                        - Enforce sensitivities (e.g., allergies like nuts, dairy) and remove ingredients violating these preferences.
+                        - Consider nutritional preferences (e.g., high-protein, low-carb) for ingredient selection.
+                        - Respect dietary restrictions (e.g., vegetarian, vegan) by removing non-compliant items.
                         - Exclude items that are illogical for cooking or unsuitable for recipes. Group these under "invalidIngredients."
+                         - Flag ingredients that violate food preferences (e.g., "beef" for vegetarian) as "violatedPreferences."
+                        
                         - Example response: {
                             "refinedIngredients": ["chicken", "garlic"],
                             "feedbackMessage": "Some items were removed for better synergy, like 'ice cream' and 'car keys.'",
+                            "violatedPreferences": ["pork"],
                             "invalidIngredients": ["laptop", "car keys"]
                           }.
                     
-                        Always respond in JSON format and avoid adding explanations outside the structure.
-                        """
+                        Always provide feedback explaining your decisions. Strictly respond in JSON format, avoid adding explanations outside the structure.
+                        """.trimIndent()
             ),
             RequestMessage(
                 "user",
@@ -428,22 +476,29 @@ class MyIngredientsActivity : AppCompatActivity() {
                         Validate the following ingredients for cooking: ${truncatedIngredients.joinToString(", ")}.
                         Tasks:
                         1. Identify and return a "refinedIngredients" list with logical, valid cooking ingredients. Remove any illogical or strange ingredients.
-                        2. Provide a "feedbackMessage" offering helpful and humorous comments based on the list. For example:
+                        2. Remove any ingredients that violate allergies, nutritional preferences, or dietary restrictions
+                        (e.g., no dairy for lactose-intolerant users, no nuts for nut allergies, consider high protein ingredients for high-protein diet, vegetables only for vegetarian, etc.).
+                        3. Provide a "feedbackMessage" offering helpful and humorous comments based on the list such as:
                            - If less than 5 ingredients, suggest adding more.
-                           - If strange ingredients are present, mention and explain why they were removed.
-                        3. Mention if any ingredients are strictly invalid or unrecognized separately. Flag any entries that are:
+                           - If strange or irrelevant ingredients are present, mention and explain why they were removed (e.g., "removed due to being non-vegan").
+                           - What ingredients were removed due to dietary restrictions or preferences.
+                           - The reason why an ingredient was removed (e.g., "pork is not allowed in a vegetarian diet").
+                        4. Mention if any ingredients are strictly invalid or unrecognized separately. Flag any entries that are:
                            - Clearly non-ingredients (e.g., sentences, random questions, or unrelated words).
                            - Illogical or unsuitable for cooking (e.g., "ice cream" for a savory recipe).
-                        Format the response strictly in JSON as shown:
+                           - Violated dietary or nutritional preferences and why.
+                       
+                           
+                        5. Format the response strictly in JSON as shown:
                         {
                           "refinedIngredients": [list of valid ingredients],
                           "feedbackMessage": "string with feedback for the user",
+                          "violatedPreferences": [list of ingredients that violate food preferences],
                           "invalidIngredients": [list of invalid ingredients or unrecognized items, if any]
                         }
                         """.trimIndent()
             )
         )
-
         makeOpenAIRequest(
             messages = messages,
             maxTokens = 2048,
@@ -457,27 +512,36 @@ class MyIngredientsActivity : AppCompatActivity() {
                     // Extract from JSON
                     val refinedIngredients = jsonResponse.optJSONArray("refinedIngredients")?.toList() ?: emptyList()
                     val feedbackMessage = jsonResponse.optString("feedbackMessage", "No feedback provided.")
+                    val violatedPreferences = jsonResponse.optJSONArray("violatedPreferences")?.toList() ?: emptyList()
                     val invalidIngredients = jsonResponse.optJSONArray("invalidIngredients")?.toList() ?: emptyList()
+
+                    Log.d("ValidationResults", "Refined Ingredients: ${refinedIngredients.joinToString(", ")}")
+                    Log.d("ValidationResults", "Feedback Message: $feedbackMessage")
+                    Log.d("ValidationResults", "Violated Preference: ${violatedPreferences.joinToString(", ")}")
+                    Log.d("ValidationResults", "Invalid Ingredients: ${invalidIngredients.joinToString(", ")}")
 
                     val hasStrangeIngredients = refinedIngredients.size < truncatedIngredients.size
 
                     // Handle
                     if (refinedIngredients.isEmpty()) {
-                        Log.w("ChatGPT", "Refined ingredients are empty.")
-                        callback(false, emptyList(), "No valid ingredients found.", false)
+                        Log.w("ValidationResults", "Refined ingredients are empty.")
+                        callback(false, emptyList(), "No valid ingredients found.", false, violatedPreferences)
                     } else if (invalidIngredients.isNotEmpty()) {
-                        callback(false, refinedIngredients, "Invalid ingredients: ${invalidIngredients.joinToString(", ")}", hasStrangeIngredients)
+                        Log.w("ValidationResults", "Invalid Ingredients Detected: ${invalidIngredients.joinToString(", ")}")
+                        callback(false, refinedIngredients, "Invalid ingredients: ${invalidIngredients.joinToString(", ")}", hasStrangeIngredients, violatedPreferences)
                     } else {
-                        callback(true, refinedIngredients, feedbackMessage, hasStrangeIngredients)
+                        Log.i("ValidationResults", "Validation successful with refined ingredients.")
+                        callback(true, refinedIngredients, feedbackMessage, hasStrangeIngredients, violatedPreferences)
                     }
+
                 } catch (e: JSONException) {
-                    Log.e("ChatGPT", "Error parsing AI response: ${e.message}")
-                    callback(false, emptyList(), "Failed to parse AI response.", false)
+                    Log.e("ValidationResults", "Error parsing AI response: ${e.message}")
+                    callback(false, emptyList(), "Failed to parse AI response.", false, emptyList())
                 }
             } else {
                 showToast("No response from your CookPal.")
                 Log.e("validateIngredients", "No response received from OpenAI.")
-                callback(false, emptyList(), "AI validation request failed.", false)
+                callback(false, emptyList(), "AI validation request failed.", false, emptyList())
             }
         }
     }
@@ -500,6 +564,7 @@ class MyIngredientsActivity : AppCompatActivity() {
                 RequestMessage("system",
                     """
                             You are a professional chef, providing clear, concise, and authentic recipes that are well-structured and easy to follow. 
+                            Generate a recipe based on the provided ingredients.
                             Each recipe should strictly follow the JSON structure and contain the following fields:
                             {
                                 "title": "The name of the dish",
@@ -510,7 +575,8 @@ class MyIngredientsActivity : AppCompatActivity() {
                             }
                             Ensure that the output is **strictly in JSON format** with no additional text or explanation.
                             Avoid conversational language or pleasantries. Focus solely on providing the recipe content in the above structure.
-                            """),
+                            """.trimIndent()
+                ),
                 RequestMessage("user",
                     """
                             Provide a recipe using these ingredients: ${ingredients.joinToString(", ")}. 
@@ -522,7 +588,8 @@ class MyIngredientsActivity : AppCompatActivity() {
                                 "instructions": ["Provide", "detailed", "step-by-step", "cooking", "instructions"],
                                 "imageURL": "A URL pointing to an image of the dish (if available)"
                             }
-                            """)
+                            """
+                )
             )
 
 

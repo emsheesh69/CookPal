@@ -17,6 +17,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
+import android.util.Log
 
 
 class UserPreference : AppCompatActivity() {
@@ -25,6 +26,9 @@ class UserPreference : AppCompatActivity() {
     private lateinit var navVoiceCommand: LinearLayout
     private lateinit var navSettings: LinearLayout
     private lateinit var tabPreferences: TextView
+    private lateinit var displayedSensitivitiesTextView: TextView
+    private lateinit var nutritionalPreferencesTextView: TextView
+    private lateinit var dietaryRestrictionsTextView: TextView
     private lateinit var tabActivity: TextView
     private lateinit var logout: TextView
     private lateinit var changePassword: TextView
@@ -65,11 +69,19 @@ class UserPreference : AppCompatActivity() {
             // Show dialog to enable or disable notifications
             showNotificationDialog()
         }
-
-
         languageTextView.setOnClickListener{
             showLanguageSelectionDialog()
         }
+        displayedSensitivitiesTextView = findViewById(R.id.displayedSensitivities)
+        nutritionalPreferencesTextView = findViewById(R.id.nutritionalPreferences)
+        dietaryRestrictionsTextView = findViewById(R.id.dietaryRestrictions)
+
+        displayedSensitivitiesTextView.setOnClickListener { showPreferencesDialog("Displayed Sensitivities", listOf("Peanuts", "Gluten", "Dairy", "Soy", "Eggs", "Tree Nuts", "Shellfish", "Fish", "Wheat", "Corn", "Sesame")) }
+        nutritionalPreferencesTextView.setOnClickListener { showPreferencesDialog("Nutritional Preferences", listOf("Low-Carb", "High-Protein", "Keto", "Low-Fat", "Low-Sodium", "High-Fiber", "Low-Sugar", "Paleo", "Mediterranean", "Intermittent Fasting", "Whole30")) }
+        dietaryRestrictionsTextView.setOnClickListener { showPreferencesDialog("Dietary Restrictions", listOf("Vegan", "Vegetarian", "Pescatarian", "Halal", "Kosher", "Lacto-Vegetarian", "Ovo-Vegetarian", "Dairy-Free", "Gluten-Free", "Nut-Free")) }
+
+
+
 
         aboutTextView.setOnClickListener{
             startActivity(Intent(this, About::class.java))
@@ -81,7 +93,6 @@ class UserPreference : AppCompatActivity() {
             overridePendingTransition(0, 0)
             finish()
         }
-
         tabActivity.setOnClickListener {
             setTab(tabActivity)
             // Redirect to the UserActivity screen
@@ -89,8 +100,6 @@ class UserPreference : AppCompatActivity() {
             overridePendingTransition(0, 0)
             finish()
         }
-
-
         navDiscover.setOnClickListener {
             setHighlightedTab(navDiscover)
             startActivity(Intent(this, MainActivity::class.java))
@@ -117,7 +126,6 @@ class UserPreference : AppCompatActivity() {
         logout.setOnClickListener {
             showLogoutDialog()
         }
-
         changePassword.setOnClickListener {
             startActivity(Intent(this, ChangeActivePassword::class.java))
         }
@@ -199,7 +207,6 @@ class UserPreference : AppCompatActivity() {
         editor.apply()
     }
 
-
     private fun redirectToAppSettings() {
         // Create an intent to open the app's settings page
         val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
@@ -208,7 +215,6 @@ class UserPreference : AppCompatActivity() {
         startActivity(intent)
     }
 
-
     private fun saveNotificationPreference(isEnabled: Boolean) {
         val sharedPreferences = getSharedPreferences("user_prefs", MODE_PRIVATE)
         val editor = sharedPreferences.edit()
@@ -216,12 +222,68 @@ class UserPreference : AppCompatActivity() {
         editor.apply()
     }
 
+    private fun showPreferencesDialog(title: String, options: List<String>) {
+        val sharedPreferences = getSharedPreferences("user_prefs", MODE_PRIVATE)
+        val key = when (title) {
+            "Dietary Restrictions" -> "dietary_restrictions"
+            "Nutritional Preferences" -> "nutritional_preferences"
+            "Displayed Sensitivities" -> "displayed_sensitivities"
+            else -> {
+                Log.e("showPreferencesDialog", "Invalid title: $title")
+                return
+            }
+        }
+
+        val savedSelections = sharedPreferences.getStringSet(key, emptySet()) ?: emptySet()
+        val selectedItems = mutableSetOf<String>().apply { addAll(savedSelections) }
+        val checkedItems = options.map { it in savedSelections }.toBooleanArray()
+
+        val builder = AlertDialog.Builder(this)
+        builder.setTitle(title)
+            .setMultiChoiceItems(options.toTypedArray(), checkedItems) { _, which, isChecked ->
+                if (isChecked) selectedItems.add(options[which])
+                else selectedItems.remove(options[which])
+            }
+            .setPositiveButton("Accept") { _, _ ->
+                savePreferences(key, selectedItems)
+                updatePreferencesSummary(title, selectedItems)
+            }
+            .setNegativeButton("Cancel", null)
+            .create()
+            .show()
+    }
+
+    private fun updatePreferencesSummary(title: String, selectedItems: Set<String>) {
+        val textView = when (title) {
+            "Dietary Restrictions" -> findViewById<TextView>(R.id.dietaryRestrictions)
+            "Nutritional Preferences" -> findViewById<TextView>(R.id.nutritionalPreferences)
+            "Displayed Sensitivities" -> findViewById<TextView>(R.id.displayedSensitivities)
+            else -> null
+        }
+
+        textView?.text = if (selectedItems.isEmpty()) {
+            "$title\nNone Selected"
+        } else {
+            "$title\n${selectedItems.joinToString(", ")}"
+        }
+
+        Log.d("updatePreferencesSummary", "Updated $title: $selectedItems")
+    }
+
     override fun onResume() {
         super.onResume()
         // Load the notification preference from SharedPreferences
         val sharedPreferences = getSharedPreferences("user_prefs", MODE_PRIVATE)
-        val notificationsEnabled = sharedPreferences.getBoolean("notifications_enabled", false) // Default to false (disabled)
 
+        // Update summaries for preferences
+        val displayedSensitivities = sharedPreferences.getStringSet("displayed_sensitivities", emptySet()) ?: emptySet()
+        updatePreferencesSummary("Displayed Sensitivities", displayedSensitivities)
+        val nutritionalPreferences = sharedPreferences.getStringSet("nutritional_preferences", emptySet()) ?: emptySet()
+        updatePreferencesSummary("Nutritional Preferences", nutritionalPreferences)
+        val dietaryRestrictions = sharedPreferences.getStringSet("dietary_restrictions", emptySet()) ?: emptySet()
+        updatePreferencesSummary("Dietary Restrictions", dietaryRestrictions)
+
+        val notificationsEnabled = sharedPreferences.getBoolean("notifications_enabled", false) // Default to false (disabled)
         if (notificationsEnabled) {
             notificationsTextView.text = "Notifications\nEnabled"
         } else {
@@ -232,8 +294,6 @@ class UserPreference : AppCompatActivity() {
         val selectedLanguage = sharedPreferences.getString("selected_language", "English") // Default to English
         languageTextView.text = "Language\n$selectedLanguage"
     }
-
-
 
     // Handle permission result for enabling notifications
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
@@ -258,8 +318,6 @@ class UserPreference : AppCompatActivity() {
         icon.setColorFilter(ContextCompat.getColor(this, R.color.highlight_color))
         text.setTextColor(ContextCompat.getColor(this, R.color.highlight_color))
     }
-
-
 
     private fun resetAllTabs() {
         val tabs = listOf(navDiscover, navIngredients, navVoiceCommand, navSettings)
@@ -306,6 +364,24 @@ class UserPreference : AppCompatActivity() {
         builder.create().show()
     }
 
+    private fun savePreferences(key: String, values: Set<String>) {
+        if (key.isEmpty()) {
+            Log.e("savePreferences", "Key cannot be empty.")
+            return
+        }
+
+        val sharedPreferences = getSharedPreferences("user_prefs", MODE_PRIVATE)
+        val editor = sharedPreferences.edit()
+
+        if (values.isEmpty()) {
+            Log.w("savePreferences", "No values to save for key: $key.")
+        }
+
+        editor.putStringSet(key, values)
+        editor.apply()
+
+        Log.d("savePreferences", "Preferences saved: Key = $key, Values = $values")
+    }
 
     private fun performLogout() {
         // Sign out the user from Firebase Authentication
