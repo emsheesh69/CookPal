@@ -1,11 +1,15 @@
 package com.example.cookpal
 
 import SendGridHelper
+import android.app.DatePickerDialog
 import android.app.Dialog
 import android.content.Intent
 import android.os.Bundle
+import android.text.InputType
+import android.text.method.PasswordTransformationMethod
 import android.util.Log
 import android.view.LayoutInflater
+import android.view.View
 import android.view.WindowManager
 import android.widget.Button
 import android.widget.CheckBox
@@ -28,6 +32,9 @@ class Registration : AppCompatActivity() {
     lateinit var database: FirebaseDatabase
     private lateinit var sendGridHelper: SendGridHelper
     private lateinit var generatedOtp: String // Used to store the OTP for email verification
+    private lateinit var birthdateEditText: EditText
+    private lateinit var passwordEditText: EditText
+    private var isPasswordVisible = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -51,24 +58,25 @@ class Registration : AppCompatActivity() {
         }
 
         val emailInput = findViewById<EditText>(R.id.emailEditText)
-        val birthdateInput = findViewById<EditText>(R.id.birthdateEditText)
-        val passwordInput = findViewById<EditText>(R.id.passwordEditText)
         val confirmPassInput = findViewById<EditText>(R.id.confirmPasswordEditText)
         val registerBtn = findViewById<Button>(R.id.registerButton)
         val termsCheckBox = findViewById<CheckBox>(R.id.termsCheckBox)
         val termsTextView = findViewById<TextView>(R.id.termsAndConditionsTextView)
-
+        birthdateEditText = findViewById(R.id.birthdateEditText)
+        passwordEditText = findViewById(R.id.passwordEditText)
 
 
         // Open the Terms and Conditions popup when clicked
         termsTextView.setOnClickListener {
             showTermsPopup(termsCheckBox)
         }
-
+        birthdateEditText.setOnClickListener {
+            showDatePicker()
+        }
         registerBtn.setOnClickListener {
             val email = emailInput.text.toString()
-            val birthdate = birthdateInput.text.toString()
-            val password = passwordInput.text.toString()
+            val birthdate = birthdateEditText.text.toString()
+            val password = passwordEditText.text.toString()
             val confirmPassword = confirmPassInput.text.toString()
 
             proceedWithRegistration(
@@ -77,13 +85,52 @@ class Registration : AppCompatActivity() {
                 password,
                 confirmPassword,
                 emailInput,
-                birthdateInput,
-                passwordInput,
+                birthdateEditText,
+                passwordEditText,
                 confirmPassInput
             )
         }
+        passwordEditText.setOnClickListener {
+            isPasswordVisible = !isPasswordVisible
+            if (isPasswordVisible) {
+                passwordEditText.inputType = InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
+                passwordEditText.setTransformationMethod(null)
+                passwordEditText.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_eye, 0)  // Show 'eye' icon
+            } else {
+                passwordEditText.inputType = InputType.TYPE_TEXT_VARIATION_PASSWORD
+                passwordEditText.setTransformationMethod(PasswordTransformationMethod.getInstance())
+                passwordEditText.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_eye_off, 0)
+            }
+            passwordEditText.setSelection(passwordEditText.text.length)
+        }
+
+        confirmPassInput.setOnClickListener {
+            isPasswordVisible = !isPasswordVisible
+            if (isPasswordVisible) {
+                confirmPassInput.inputType = InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
+                confirmPassInput.setTransformationMethod(null)
+                confirmPassInput.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_eye, 0)
+            } else {
+                confirmPassInput.inputType = InputType.TYPE_TEXT_VARIATION_PASSWORD
+                confirmPassInput.setTransformationMethod(PasswordTransformationMethod.getInstance())
+                confirmPassInput.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_eye_off, 0)
+            }
+            confirmPassInput.setSelection(confirmPassInput.text.length)
+        }
     }
 
+
+    private fun showDatePicker() {
+        val calendar = Calendar.getInstance()
+        val year = calendar.get(Calendar.YEAR)
+        val month = calendar.get(Calendar.MONTH)
+        val day = calendar.get(Calendar.DAY_OF_MONTH)
+
+        DatePickerDialog(this, { _, selectedYear, selectedMonth, selectedDay ->
+            val selectedDate = String.format("%02d-%02d-%d", selectedMonth + 1, selectedDay, selectedYear)
+            birthdateEditText.setText(selectedDate)
+        }, year, month, day).show()
+    }
     // Main registration logic with all checks
     private fun proceedWithRegistration(
         email: String,

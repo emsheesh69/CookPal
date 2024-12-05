@@ -12,4 +12,9 @@
         <item>Soup</item>
     </string-array>
 
+    <string name="voice_command_next_step">Next step</string>
+    <string name="voice_command_previous_step">Previous step</string>
+    <string name="voice_command_repeat_step">Repeat step</string>
+    <string name="voice_command_start_timer">Start timer</string>
+    <string name="voice_command_stop_timer">Stop timer</string>
 </resources>

@@ -22,12 +22,20 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_filter"
             app:tint="@color/white" />
-        <SearchView
-            android:id="@+id/searchView_home"
-            android:queryHint="Search recipe..."
-            android:iconifiedByDefault="false"
+        <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
             android:layout_width="match_parent"
-            android:layout_height="match_parent" />
+            android:layout_height="match_parent"
+            android:padding="2dp"
+            android:background="@drawable/outline_border">
+
+            <SearchView
+                android:id="@+id/searchView_home"
+                android:queryHint="Search recipe..."
+                android:iconifiedByDefault="false"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+
+        </FrameLayout>
     </LinearLayout>
 
 

@@ -191,7 +191,6 @@ class MyIngredientsActivity : AppCompatActivity() {
                     ingredientsAdapter.notifyDataSetChanged()
                 }
                 .addOnFailureListener { e ->
-                    Log.e("MyIngredientsActivity", "Failed to load ingredients: ${e.message}", e)
                     showToast("Unable to load ingredients. Please try again later.")
                 }
         }
@@ -203,10 +202,8 @@ class MyIngredientsActivity : AppCompatActivity() {
             firestore.collection(ingredientsCollection).document(userId)
                 .set(ingredientsData)
                 .addOnSuccessListener {
-                    Log.d("MyIngredientsActivity", "Ingredients saved successfully.")
                 }
                 .addOnFailureListener { e ->
-                    Log.e("MyIngredientsActivity", "Failed to save ingredients: ${e.message}", e)
                     showToast("Failed to save ingredients. Please check your connection.")
                 }
         }
@@ -256,8 +253,6 @@ class MyIngredientsActivity : AppCompatActivity() {
                             ingredientsList[pos] = updatedIngredient.uppercase()
                             ingredientsAdapter.notifyItemChanged(pos)
                             showToast("Ingredient updated successfully.")
-                        } else {
-                            showToast("The ingredient being edited was deleted. Update canceled.")
                         }
                     }
                     resetAddIngredientButton()
@@ -289,41 +284,30 @@ class MyIngredientsActivity : AppCompatActivity() {
     }
 
     private fun deleteIngredient(position: Int) {
-        // Safely check if the position is valid
         if (position in ingredientsList.indices) {
-            // Remove ingredient from list
             val deletedIngredient = ingredientsList.removeAt(position)
 
-            // Notify the adapter about the removed item
             ingredientsAdapter.notifyItemRemoved(position)
 
-            // Correct inconsistencies in adapter's item positions
             ingredientsAdapter.notifyItemRangeChanged(position, ingredientsList.size - position)
 
-            // Check if list is empty
             if (ingredientsList.isEmpty()) {
-                ingredientsAdapter.notifyDataSetChanged() // Reset the entire adapter
+                ingredientsAdapter.notifyDataSetChanged()
                 showToast("All ingredients have been removed.")
             }
 
-            // Reset the editing state if the deleted position matches the editing position
             if (editingPosition == position) {
                 resetAddIngredientButton()
                 editTextIngredient.setText("")
                 editingPosition = null
                 showToast("The ingredient being edited was deleted. Editing canceled.")
             } else if (editingPosition != null && position < editingPosition!!) {
-                // Adjust editing position if a preceding item was deleted
                 editingPosition = editingPosition!! - 1
             }
-
-            // Save the updated list to Firebase
             saveIngredients()
             showToast("Ingredient '$deletedIngredient' deleted.")
 
         } else {
-            // Log and notify about invalid positions
-            Log.e("MyIngredientsActivity", "Attempted to delete invalid position: $position")
             showToast("Invalid position. Unable to delete.")
         }
     }

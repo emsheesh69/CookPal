@@ -189,12 +189,13 @@ class UserPreference : AppCompatActivity() {
         val builder = AlertDialog.Builder(this)
         builder.setTitle("Which language do you prefer in text-to-speech?")
             .setItems(options) { _, which ->
-                // Update the languageTextView based on selection
                 val selectedLanguage = options[which]
                 languageTextView.text = "Language\n$selectedLanguage"
 
-                // Save the selected language in SharedPreferences
-                saveLanguagePreference(selectedLanguage)
+                val sharedPreferences = getSharedPreferences("user_prefs", MODE_PRIVATE)
+                val editor = sharedPreferences.edit()
+                editor.putString("selected_language", selectedLanguage)
+                editor.apply()
             }
             .create()
             .show()

@@ -11,6 +11,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
+        android:padding="16dp"
         android:gravity="center_vertical">
 
         <EditText
@@ -37,6 +38,7 @@
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerIngredients"
         android:layout_width="match_parent"
+        android:paddingStart="16dp"
         android:layout_height="0dp"
         android:layout_weight="1" />
 

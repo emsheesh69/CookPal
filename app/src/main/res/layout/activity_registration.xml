@@ -82,6 +82,9 @@
         android:padding="12dp"
         android:textColor="@android:color/black"
         android:textColorHint="@android:color/darker_gray"
+        android:drawableEnd="@drawable/ic_calendar"
+        android:drawablePadding="8dp"
+        android:clickable="true"
         app:layout_constraintTop_toBottomOf="@+id/birthdateTextView"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
@@ -108,9 +111,12 @@
         android:padding="12dp"
         android:textColor="@android:color/black"
         android:textColorHint="@android:color/darker_gray"
-        app:layout_constraintTop_toBottomOf="@+id/passwordTextView"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        android:drawableEnd="@drawable/ic_eye_off"
+    android:drawablePadding="8dp"
+    android:clickable="true"
+    app:layout_constraintTop_toBottomOf="@+id/passwordTextView"
+    app:layout_constraintStart_toStartOf="parent"
+    app:layout_constraintEnd_toEndOf="parent" />
 
     <!-- Confirm Password -->
     <TextView
@@ -128,15 +134,17 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:background="@drawable/edit_text_background"
-        android:hint="Re-enter your password"
-        android:inputType="textPassword"
-        android:padding="12dp"
-        android:textColor="@android:color/black"
-        android:textColorHint="@android:color/darker_gray"
-        app:layout_constraintTop_toBottomOf="@+id/confirmPasswordTextView"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        android:drawableEnd="@drawable/ic_eye_off"
+    android:background="@drawable/edit_text_background"
+    android:hint="Re-enter your password"
+    android:inputType="textPassword"
+    android:padding="12dp"
+    android:clickable="true"
+    android:textColor="@android:color/black"
+    android:textColorHint="@android:color/darker_gray"
+    app:layout_constraintTop_toBottomOf="@+id/confirmPasswordTextView"
+    app:layout_constraintStart_toStartOf="parent"
+    app:layout_constraintEnd_toEndOf="parent" />
 
     <!-- Terms and Conditions Checkbox and Link -->
     <LinearLayout
