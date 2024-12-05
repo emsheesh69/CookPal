@@ -47,6 +47,9 @@ class RecipeDetails : AppCompatActivity() {
 
     private val userId = FirebaseAuth.getInstance().currentUser?.uid
     private var instructions: ArrayList<String> = ArrayList()  // Store instructions here
+    private var originalInstructions: ArrayList<String> = ArrayList()
+    private val ingredientSubstitutes = HashMap<String, String>()
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -135,36 +138,100 @@ class RecipeDetails : AppCompatActivity() {
         val dialogBuilder = AlertDialog.Builder(this)
         dialogBuilder.setTitle("Substitutes for $ingredientName")
 
-        val substituteText = substitutes.joinToString("\n")
-        dialogBuilder.setMessage(substituteText)
+        val items = substitutes.toMutableList()
+        items.add("Revert to original")
+        val selectedIndex = items.indexOf(ingredientSubstitutes[ingredientName])
 
-        dialogBuilder.setPositiveButton("OK") { dialog, _ ->
+        dialogBuilder.setSingleChoiceItems(items.toTypedArray(), selectedIndex) { dialog, which ->
+            val selectedSubstitute = items[which]
+            if (selectedSubstitute == "Revert to original") {
+                revertToOriginalIngredient(ingredientName)
+            } else {
+                swapIngredientInUI(ingredientName, selectedSubstitute)
+                updateInstructionsWithSubstitute(ingredientName, selectedSubstitute)
+                ingredientSubstitutes[ingredientName] = selectedSubstitute
+            }
             dialog.dismiss()
         }
 
+        dialogBuilder.setNegativeButton("Cancel") { dialog, _ -> dialog.dismiss() }
         dialogBuilder.create().show()
     }
 
+    private fun revertToOriginalIngredient(ingredientName: String) {
+        val adapter = recyclerMealIngredients.adapter as? IngredientsAdapter
+        if (adapter == null) return
+
+        val updatedIngredients = mutableListOf<ExtendedIngredient>()
+        var ingredientUpdated = false
+
+        for (ingredient in adapter.ingredients) {
+            if (ingredient.name.equals(ingredientName, ignoreCase = true)) {
+                Log.d("RevertIngredient", "Reverting: ${ingredient.name} -> ${ingredient.original}")
+
+                val revertedIngredient = ExtendedIngredient().apply {
+                    name = ingredient.original
+                    original = ingredient.original
+                    id = ingredient.id
+                }
+                updatedIngredients.add(revertedIngredient)
+                ingredientUpdated = true
+            } else {
+                updatedIngredients.add(ingredient)
+            }
+        }
+
+        if (ingredientUpdated) {
+            adapter.updateIngredients(updatedIngredients)
+            Toast.makeText(this, "$ingredientName reverted to original", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(this, "No changes to revert", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun swapIngredientInUI(originalIngredient: String, substitute: String) {
+        val adapter = recyclerMealIngredients.adapter as? IngredientsAdapter ?: return
+        val currentIngredients = adapter.getIngredients()
+        val updatedIngredients = currentIngredients.map { ingredient ->
+            if (ingredient.name.equals(originalIngredient, ignoreCase = true)) {
+                ExtendedIngredient().apply {
+                    name = substitute
+                    original = originalIngredient
+                    id = ingredient.id
+                }
+            } else {
+                ingredient
+            }
+        }
+        if (updatedIngredients != currentIngredients) {
+            adapter.updateIngredients(updatedIngredients)
+            Toast.makeText(this, "$originalIngredient replaced with $substitute", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(this, "No ingredients replaced", Toast.LENGTH_SHORT).show()
+        }
+    }
+    private fun updateInstructionsWithSubstitute(originalIngredient: String, substitute: String) {
+        if (originalInstructions.isEmpty()) {
+            originalInstructions.addAll(instructions)
+        }
+        val updatedInstructions = originalInstructions.map { instruction ->
+            instruction.replace("\\b$originalIngredient\\b".toRegex(RegexOption.IGNORE_CASE), substitute)
+        }
+        instructions = ArrayList(updatedInstructions)
+        textViewMealInstructions.text = instructions.joinToString("\n\n")
+        val ingredientsAdapter = recyclerMealIngredients.adapter as? IngredientsAdapter
+        ingredientsAdapter?.updateIngredient(originalIngredient, substitute)
+    }
     private fun loadAIRecipeDetails() {
-        Log.d("RecipeDetails", "Loading AI Recipe Details...")
 
         val title = intent.getStringExtra("title") ?: "No title available"
         val summary = intent.getStringExtra("summary") ?: "No summary available"
         val image = intent.getStringExtra("image")
         val ingredients = intent.getStringArrayListExtra("ingredients") ?: arrayListOf()
         this.instructions = intent.getStringArrayListExtra("instructions") ?: arrayListOf()
-
-
-        Log.d("RecipeDetails", "AI Recipe Details - Title: $title")
-        Log.d("RecipeDetails", "AI Recipe Details - Summary: $summary")
-        Log.d("RecipeDetails", "AI Recipe Details - Image: ${image ?: "No image provided"}")
-        Log.d("RecipeDetails", "AI Recipe Details - Ingredients: $ingredients")
-        Log.d("RecipeDetails", "AI Recipe Details - Instructions: $instructions")
-
         textViewMealName.text = title
         textViewMealSource.text = "Generated by AI"
         textViewMealSummary.text = Html.fromHtml(summary, Html.FROM_HTML_MODE_LEGACY)
-
         if (!image.isNullOrBlank()) {
             Picasso.get().load(image).into(imageViewMealImage)
             imageViewMealImage.tag = image
@@ -190,7 +257,6 @@ class RecipeDetails : AppCompatActivity() {
         }
 
         if (ingredientObjects.isEmpty()) {
-            Log.w("RecipeDetails", "No ingredients provided for the AI recipe.")
         }
 
         recyclerMealIngredients.setHasFixedSize(true)
@@ -198,16 +264,12 @@ class RecipeDetails : AppCompatActivity() {
         recyclerMealIngredients.adapter = IngredientsAdapter(this, ingredientObjects) { ingredientName ->
             ingredientName?.let {
                 getSubstituteForIngredient(it)
-            } ?: Log.e("RecipeDetails", "Ingredient name is null.")
+            }
         }
 
         if (::dialog.isInitialized && dialog.isShowing) {
             dialog.dismiss()
-        } else {
-            Log.w("RecipeDetails", "Dialog was not initialized or already dismissed.")
         }
-
-        Log.d("RecipeDetails", "AI Recipe Details successfully loaded.")
     }
 
     private fun loadRecipeDetails() {
@@ -265,7 +327,7 @@ class RecipeDetails : AppCompatActivity() {
             if (intent.getStringExtra("type") == "AI") {
                 Toast.makeText(this@RecipeDetails, "Failed to load AI Recipe: $message", Toast.LENGTH_SHORT).show()
             } else {
-                Toast.makeText(this@RecipeDetails, message, Toast.LENGTH_SHORT).show()
+//                Toast.makeText(this@RecipeDetails, message, Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -310,7 +372,6 @@ class RecipeDetails : AppCompatActivity() {
             updateFavoriteButton()
         }.addOnFailureListener {
             Toast.makeText(this, "Failed to add to Favorites", Toast.LENGTH_SHORT).show()
-            Log.e("RecipeDetails", "Error adding to Favorites: ${it.message}")
         }
     }
     private fun removeFromFavorites() {
@@ -323,7 +384,6 @@ class RecipeDetails : AppCompatActivity() {
     }
 
     private fun startCooking() {
-        Log.d("RecipeDetails", "Instructions in startCooking: $instructions")
         // Ensure that instructions are available and not empty
         if (this.instructions != null && this.instructions.isNotEmpty()) {
             val intent = Intent(this@RecipeDetails, CookingActivity::class.java)

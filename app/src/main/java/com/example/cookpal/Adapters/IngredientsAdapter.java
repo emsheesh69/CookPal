@@ -1,5 +1,6 @@
 package com.example.cookpal.Adapters;
 
+import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.view.LayoutInflater;
@@ -13,20 +14,20 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.cookpal.Models.ExtendedIngredient;
 import com.example.cookpal.R;
-import com.squareup.picasso.Picasso;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class IngredientsAdapter extends RecyclerView.Adapter<IngredientsViewHolder> {
 
-    Context context;
-    List<ExtendedIngredient> list;
-    OnIngredientClickListener listener;
+    private final Context context;
+    private List<ExtendedIngredient> ingredients;
+    private final OnIngredientClickListener listener;
 
-    // Constructor with listener
-    public IngredientsAdapter(Context context, List<ExtendedIngredient> list, OnIngredientClickListener listener) {
+    public IngredientsAdapter(Context context, List<ExtendedIngredient> ingredients, OnIngredientClickListener listener) {
         this.context = context;
-        this.list = list;
+        this.ingredients = ingredients;
         this.listener = listener;
     }
 
@@ -38,7 +39,7 @@ public class IngredientsAdapter extends RecyclerView.Adapter<IngredientsViewHold
 
     @Override
     public void onBindViewHolder(@NonNull IngredientsViewHolder holder, int position) {
-        ExtendedIngredient ingredient = list.get(position);
+        ExtendedIngredient ingredient = ingredients.get(position);
 
         holder.textview_ingredients_name.setText(ingredient.getName());
         holder.textview_ingredients_name.setSelected(true);
@@ -66,18 +67,49 @@ public class IngredientsAdapter extends RecyclerView.Adapter<IngredientsViewHold
         }
 
         dialogBuilder.setMessage(substituteText.toString());
-
-        dialogBuilder.setPositiveButton("OK", (dialog, which) -> dialog.dismiss());  // Dismiss the dialog on OK
-
+        dialogBuilder.setPositiveButton("OK", (dialog, which) -> dialog.dismiss());
         dialogBuilder.create().show();
+    }
+
+    @SuppressLint("NotifyDataSetChanged")
+    public void updateIngredient(String original, String substitute) {
+        List<ExtendedIngredient> updatedList = new ArrayList<>();
+        boolean ingredientUpdated = false;
+
+        for (ExtendedIngredient ingredient : ingredients) {
+            if (Objects.requireNonNull(ingredient.getName()).equalsIgnoreCase(original)) {
+                if (substitute == null || substitute.isEmpty()) {
+                    ingredient.setName(ingredient.getOriginal());
+                } else {
+                    ingredient.setName(substitute);
+                }
+                updatedList.add(ingredient);
+                ingredientUpdated = true;
+            } else {
+                updatedList.add(ingredient);
+            }
+        }
+
+        if (ingredientUpdated) {
+            this.ingredients = updatedList;
+            notifyDataSetChanged();
+        }
+    }
+
+    public List<ExtendedIngredient> getIngredients() {
+        return new ArrayList<>(ingredients);
+    }
+
+    public void updateIngredients(List<ExtendedIngredient> updatedIngredients) {
+        this.ingredients = updatedIngredients;
+        notifyDataSetChanged();
     }
 
     @Override
     public int getItemCount() {
-        return list.size();
+        return ingredients.size();
     }
 
-    // Interface for click handling
     public interface OnIngredientClickListener {
         void onIngredientClick(String ingredientName);
     }

@@ -57,6 +57,7 @@ class MainActivity : AppCompatActivity(), ClickedRecipeListener {
         setupNavigationTabs()
         setupFilterButton()
         loadInitialRecipes()
+        dialog.dismiss()
     }
 
     private fun checkPermissions() {

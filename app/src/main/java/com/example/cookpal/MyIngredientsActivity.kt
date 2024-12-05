@@ -337,7 +337,7 @@ class MyIngredientsActivity : AppCompatActivity() {
                 }
 
                 override fun onFailure(call: Call<OpenAIResponse>, t: Throwable) {
-                    showToast("API request failed: ${t.message}")
+//                    showToast("API request failed: ${t.message}")
                     Log.e("OpenAIResponse", "Error: ${t.message}")
                     onResponse(null)
                 }

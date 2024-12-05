@@ -35,6 +35,10 @@ import androidx.core.app.NotificationCompat
 import android.speech.tts.UtteranceProgressListener
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.example.cookpal.Adapters.CommandListAdapter
+import com.example.cookpal.Models.VoiceComms
 
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
@@ -76,7 +80,7 @@ class CookingActivity : AppCompatActivity() {
     private var isSpeaking = false
     private lateinit var micStatusView: TextView
     private var isTimerActive = false
-
+    private var isTimerRunning = false
     companion object {
         private const val PERMISSION_REQUEST_CODE = 123
     }
@@ -195,92 +199,72 @@ class CookingActivity : AppCompatActivity() {
         timerButton.setOnClickListener {
             onTimerClick(it)
         }
+        val commands = listOf(
+            VoiceComms("Next", "Go to the next step"),
+            VoiceComms("Forward", "Advance to the next step"),
+            VoiceComms("Continue", "Resume the current step"),
+            VoiceComms("Back", "Return to the previous step"),
+            VoiceComms("Repeat", "Repeat the current instruction"),
+            VoiceComms("Start Timer", "Start a cooking timer")
+        )
+
+        val adapter = CommandListAdapter(commands)
+        findViewById<RecyclerView>(R.id.voice_command_list).apply {
+            layoutManager = LinearLayoutManager(context)
+            this.adapter = adapter
+        }
+        val voiceCommandButton = findViewById<LinearLayout>(R.id.voice_command_button)
+        val voiceCommandListContainer = findViewById<LinearLayout>(R.id.voice_command_list_container)
+
+        voiceCommandButton.setOnClickListener {
+            if (voiceCommandListContainer.visibility == View.GONE) {
+                voiceCommandListContainer.visibility = View.VISIBLE
+            } else {
+                voiceCommandListContainer.visibility = View.GONE
+            }
+        }
 
     }
 
-    private val glossary = mapOf(
-        "bake" to "maghurno",
-        "boil" to "pakuluin",
-        "broth" to "sabaw",
-        "chop" to "hiwa",
-        "dice" to "tadtarin",
-        "fry" to "magprito",
-        "grill" to "i-ihaw",
-        "mince" to "durugin",
-        "mix" to "haluin",
-        "peel" to "balatan",
-        "roast" to "iihaw",
-        "sauté" to "igisa",
-        "season" to "timplahan",
-        "simmer" to "pakuluan ng mahina",
-        "slice" to "hiwain",
-        "steam" to "pasingawan",
-        "stir" to "haluin",
-        "strain" to "salain",
-        "whisk" to "pagsamahin o batihin",
-        "marinate" to "ibabad sa timpla",
-        "knead" to "masahin",
-        "garnish" to "palamutihan",
-        "blend" to "ihalo sa blender",
-        "crush" to "durugin",
-        "drain" to "salain o alisin ang tubig"
-    )
-
     private fun translateText(input: String, targetLanguage: String, callback: (String) -> Unit) {
-        // Preprocess text using glossary
-        val preTranslatedText = glossary.entries.fold(input) { text, (englishTerm, filipinoTerm) ->
-            text.replace(englishTerm, filipinoTerm, ignoreCase = true)
-        }
-
-        // If the target language is not Filipino, call the Cloud Translation API
-        if (targetLanguage != "tl") {
-            // Google Translate API URL
-            val url = "https://translation.googleapis.com/language/translate/v2"
-
-            val requestBody = """
+        val url = "https://translation.googleapis.com/language/translate/v2"
+        val requestBody = """
         {
-            "q": "$preTranslatedText",
+            "q": "$input",
             "target": "$targetLanguage",
             "format": "text"
         }
-        """.trimIndent()
-
-            // Asynchronous HTTP request
-            Thread {
-                try {
-                    val connection = (URL("$url?key=$apiKey").openConnection() as HttpURLConnection).apply {
-                        requestMethod = "POST"
-                        doOutput = true
-                        setRequestProperty("Content-Type", "application/json")
-                        outputStream.write(requestBody.toByteArray())
-                    }
-
-                    val responseCode = connection.responseCode
-                    if (responseCode == 200) {
-                        val response = connection.inputStream.bufferedReader().readText()
-                        val translatedText = JSONObject(response)
-                            .getJSONObject("data")
-                            .getJSONArray("translations")
-                            .getJSONObject(0)
-                            .getString("translatedText")
-
-                        // Invoke the callback with the translated text
-                        runOnUiThread { callback(translatedText) }
-                    } else {
-                        Log.e("Translation", "Failed with response code: $responseCode")
-                        runOnUiThread { callback(preTranslatedText) } // Fallback to pre-translated text
-                    }
-                } catch (e: Exception) {
-                    Log.e("Translation", "Error: ${e.message}")
-                    runOnUiThread { callback(preTranslatedText) } // Fallback to pre-translated text
+    """.trimIndent()
+        Thread {
+            try {
+                val connection = (URL("$url?key=$apiKey").openConnection() as HttpURLConnection).apply {
+                    requestMethod = "POST"
+                    doOutput = true
+                    setRequestProperty("Content-Type", "application/json")
+                    outputStream.write(requestBody.toByteArray())
                 }
-            }.start()
-        } else {
-            // If target language is Filipino, use pre-translated text
-            callback(preTranslatedText)
-        }
-    }
 
+                val responseCode = connection.responseCode
+                if (responseCode == 200) {
+                    val response = connection.inputStream.bufferedReader().readText()
+                    val translatedText = JSONObject(response)
+                        .getJSONObject("data")
+                        .getJSONArray("translations")
+                        .getJSONObject(0)
+                        .getString("translatedText")
+
+                    // Invoke the callback with the translated text
+                    runOnUiThread { callback(translatedText) }
+                } else {
+                    Log.e("Translation", "Failed with response code: $responseCode")
+                    runOnUiThread { callback(input) } // Fallback to original text
+                }
+            } catch (e: Exception) {
+                Log.e("Translation", "Error: ${e.message}")
+                runOnUiThread { callback(input) } // Fallback to original text
+            }
+        }.start()
+    }
 
     private fun saveCookingHistory() {
         val user = FirebaseAuth.getInstance().currentUser
@@ -773,8 +757,13 @@ class CookingActivity : AppCompatActivity() {
             restartListeningWithDelay(500)
         }
     }
-
-
+    private fun startStopTimer() {
+        if (isTimerRunning) {
+            stopTimer()
+        } else {
+            startTimer()
+        }
+    }
     private fun startTimer() {
         val minutesText = timerMinutesInput.text.toString()
         val secondsText = timerSecondsInput.text.toString()
@@ -784,8 +773,14 @@ class CookingActivity : AppCompatActivity() {
         if (minutes >= 0 && seconds >= 0) {
             timeLeftInMillis = ((minutes * 60 + seconds) * 1000).toLong()
             if (timeLeftInMillis > 0) {
-                isTimerActive = true  // Set timer as active
-                stopVoiceRecognition()  // Stop listening while timer is running
+                isTimerRunning = true // Timer is now running
+                stopVoiceRecognition() // Stop listening while timer is running
+
+                timerLayout.visibility = View.VISIBLE
+
+                startStopTimerButton.text = "Stop"
+
+                timer?.cancel()
 
                 timer = object : CountDownTimer(timeLeftInMillis, 1000) {
                     override fun onTick(millisUntilFinished: Long) {
@@ -796,16 +791,23 @@ class CookingActivity : AppCompatActivity() {
 
                     override fun onFinish() {
                         timerText.text = "00:00"
-                        isTimerActive = false  // Timer is no longer active
+                        isTimerRunning = false // Timer is stopped
                         onTimerFinish()
+
+                        startStopTimerButton.text = "Start"
+                        timer = null // Clear the timer object after it finishes
                     }
-                }.start()
+                }
+
+                timer?.start() // Start the new timer
+
+                timerMinutesInput.text.clear()
+                timerSecondsInput.text.clear()
             }
         } else {
             Toast.makeText(this, "Please enter valid numbers for minutes and seconds.", Toast.LENGTH_SHORT).show()
         }
     }
-
 
 
     private fun onTimerFinish() {
@@ -869,10 +871,19 @@ class CookingActivity : AppCompatActivity() {
     }
 
     private fun stopTimer() {
+        // Cancel the current timer if running
         timer?.cancel()
-        isTimerActive = false
+
+        // Reset the UI after stopping the timer
+        isTimerRunning = false
         timerText.text = "00:00"
-        startVoiceRecognition()
+        startStopTimerButton.text = "Start"
+
+        // Optionally, reset input fields or other views if necessary
+        timerMinutesInput.text.clear()
+        timerSecondsInput.text.clear()
+startVoiceRecognition()
+        timer = null
     }
     private fun updateInstructionView() {
         val currentInstruction = instructions[currentStepIndex]

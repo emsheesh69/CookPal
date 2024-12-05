@@ -8,6 +8,7 @@ firebaseAuthVersion = "21.1.0"
 firebaseBom = "33.5.1"
 firebaseDatabaseVersion = "20.3.0"
 googleFirebaseAuth = "22.0.0"
+googleFirebaseAuthVersion = "23.1.0"
 kotlin = "1.9.0"
 coreKtx = "1.13.1"
 junit = "4.13.2"
@@ -47,6 +48,7 @@ converter-gson-v2110 = { module = "com.squareup.retrofit2:converter-gson", versi
 converter-gson-v290 = { module = "com.squareup.retrofit2:converter-gson", version.ref = "converterGsonVersion" }
 firebase-auth-v2110 = { module = "com.google.firebase:firebase-auth", version.ref = "firebaseAuthVersion" }
 firebase-auth-v2200 = { module = "com.google.firebase:firebase-auth", version.ref = "googleFirebaseAuth" }
+firebase-auth-v2310 = { module = "com.google.firebase:firebase-auth", version.ref = "googleFirebaseAuthVersion" }
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
 firebase-database-v2030 = { module = "com.google.firebase:firebase-database", version.ref = "firebaseDatabaseVersion" }
 firebase-firestore = { module = "com.google.firebase:firebase-firestore" }
