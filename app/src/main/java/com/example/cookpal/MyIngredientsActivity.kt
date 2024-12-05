@@ -49,6 +49,7 @@ class MyIngredientsActivity : AppCompatActivity() {
     private lateinit var navSettings: LinearLayout
     private lateinit var sharedPreferences: SharedPreferences
 
+    private var editingPosition: Int? = null
     private var ingredientsList: MutableList<String> = mutableListOf()
     private lateinit var foodPreferences: Map<String, Any>
 
@@ -240,20 +241,28 @@ class MyIngredientsActivity : AppCompatActivity() {
             editTextIngredient.setText(currentIngredient)
 
             buttonAddIngredient.text = "Update"
+            editingPosition = position // Save the position being edited
+
             buttonAddIngredient.setOnClickListener {
                 val updatedIngredient = editTextIngredient.text.toString().trim()
                 if (updatedIngredient.isEmpty()) {
                     showToast("Please enter a valid ingredient.")
-                } else if (ingredientsList.contains(updatedIngredient.uppercase()) && currentIngredient.uppercase() != updatedIngredient.uppercase()) {
+                } else if (ingredientsList.contains(updatedIngredient.uppercase()) &&
+                    currentIngredient.uppercase() != updatedIngredient.uppercase()) {
                     showToast("This ingredient already exists.")
                 } else {
-                    ingredientsList[position] = updatedIngredient.uppercase()
-                    ingredientsAdapter.notifyItemChanged(position)
+                    editingPosition?.let { pos ->
+                        if (pos in ingredientsList.indices) {
+                            ingredientsList[pos] = updatedIngredient.uppercase()
+                            ingredientsAdapter.notifyItemChanged(pos)
+                            showToast("Ingredient updated successfully.")
+                        } else {
+                            showToast("The ingredient being edited was deleted. Update canceled.")
+                        }
+                    }
                     resetAddIngredientButton()
                     saveIngredients()
-                    // Clear the input field
-                    editTextIngredient.setText("")
-                    showToast("Ingredient updated successfully.")
+                    editTextIngredient.setText("") // Clear the input field
                 }
             }
         } else {
@@ -280,19 +289,40 @@ class MyIngredientsActivity : AppCompatActivity() {
     }
 
     private fun deleteIngredient(position: Int) {
-        if (position in ingredientsList.indices) { // Safely check position
+        // Safely check if the position is valid
+        if (position in ingredientsList.indices) {
+            // Remove ingredient from list
             val deletedIngredient = ingredientsList.removeAt(position)
+
+            // Notify the adapter about the removed item
             ingredientsAdapter.notifyItemRemoved(position)
 
-            // If the list is now empty, notify the adapter
+            // Correct inconsistencies in adapter's item positions
+            ingredientsAdapter.notifyItemRangeChanged(position, ingredientsList.size - position)
+
+            // Check if list is empty
             if (ingredientsList.isEmpty()) {
-                ingredientsAdapter.notifyDataSetChanged()
+                ingredientsAdapter.notifyDataSetChanged() // Reset the entire adapter
+                showToast("All ingredients have been removed.")
             }
 
-            // Save updated list to Firebase
+            // Reset the editing state if the deleted position matches the editing position
+            if (editingPosition == position) {
+                resetAddIngredientButton()
+                editTextIngredient.setText("")
+                editingPosition = null
+                showToast("The ingredient being edited was deleted. Editing canceled.")
+            } else if (editingPosition != null && position < editingPosition!!) {
+                // Adjust editing position if a preceding item was deleted
+                editingPosition = editingPosition!! - 1
+            }
+
+            // Save the updated list to Firebase
             saveIngredients()
             showToast("Ingredient '$deletedIngredient' deleted.")
+
         } else {
+            // Log and notify about invalid positions
             Log.e("MyIngredientsActivity", "Attempted to delete invalid position: $position")
             showToast("Invalid position. Unable to delete.")
         }
