@@ -71,17 +71,11 @@ class MyIngredientsActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_my_ingredients)
-
-        // Log the OpenAI API key to check if it's loaded correctly
-        Log.d("ChatGPT", "OpenAI API Key: ${BuildConfig.OPENAI_API_KEY}")
-
         val textClearList: TextView = findViewById(R.id.textClearList)
 
-        // Create a SpannableString to apply underline
         val content = SpannableString(textClearList.text)
         content.setSpan(UnderlineSpan(), 0, content.length, 0)
 
-        // Set the modified text to the TextView
         textClearList.text = content
 
         textClearList.setOnClickListener {
@@ -102,7 +96,6 @@ class MyIngredientsActivity : AppCompatActivity() {
             }
         }
 
-        // Initialize Shared Preferences
         val auth = FirebaseAuth.getInstance()
         if (auth.currentUser == null) {
             val loginIntent = Intent(this, Login::class.java)
@@ -111,10 +104,8 @@ class MyIngredientsActivity : AppCompatActivity() {
             return
         }
 
-        // Initialize shared preferences for ingredient data
         sharedPreferences = getSharedPreferences(prefsFileName, Context.MODE_PRIVATE)
 
-        // Load food preferences (Dietary restrictions, sensitivities, etc.)
         foodPreferences = loadFoodPreferences()
 
         initViews()

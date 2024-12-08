@@ -122,7 +122,6 @@ class UserPreference : AppCompatActivity() {
         setTab(tabPreferences)
         setHighlightedTab(navSettings)
 
-        // Set up the logout confirmation dialog
         logout.setOnClickListener {
             showLogoutDialog()
         }
@@ -132,18 +131,13 @@ class UserPreference : AppCompatActivity() {
     }
 
     private fun displayUserEmail() {
-        // Get the current Firebase user
         val currentUser = FirebaseAuth.getInstance().currentUser
 
-        // Check if the user is signed in
         if (currentUser != null) {
-            // Retrieve the user's email
             val userEmail = currentUser.email
 
-            // Set the email to the TextView
             userNameTextView.text = userEmail
         } else {
-            // If no user is signed in, show a default message
             userNameTextView.text = "Guest"
         }
     }
@@ -154,28 +148,23 @@ class UserPreference : AppCompatActivity() {
             .setMessage("Would you like to enable or disable notifications?")
             .setCancelable(false)
             .setPositiveButton("Enable") { dialog, id ->
-                // Request notification permission if on Android 13+ (API 33 and above)
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     if (ContextCompat.checkSelfPermission(
                             this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
-                        // Permission is already granted, update UI
                         notificationsTextView.text = "Notifications\nEnabled"
                         Toast.makeText(this, "Notifications Enabled", Toast.LENGTH_SHORT).show()
                         saveNotificationPreference(true)  // Save preference
                     } else {
-                        // Permission not granted, redirect user to app settings to enable notifications
                         Toast.makeText(this, "Please enable notification permission in the settings.", Toast.LENGTH_SHORT).show()
                         redirectToAppSettings()
                     }
                 } else {
-                    // On older versions, assume permissions are granted by default
                     notificationsTextView.text = "Notifications\nEnabled"
                     Toast.makeText(this, "Notifications Enabled", Toast.LENGTH_SHORT).show()
                     saveNotificationPreference(true)  // Save preference
                 }
             }
             .setNegativeButton("Disable") { dialog, id ->
-                // Disable notifications, update the UI
                 notificationsTextView.text = "Notifications\nDisabled"
                 Toast.makeText(this, "Notifications Disabled", Toast.LENGTH_SHORT).show()
                 saveNotificationPreference(false)  // Save preference

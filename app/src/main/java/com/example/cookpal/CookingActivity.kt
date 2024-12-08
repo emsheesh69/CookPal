@@ -199,20 +199,37 @@ class CookingActivity : AppCompatActivity() {
         timerButton.setOnClickListener {
             onTimerClick(it)
         }
-        val commands = listOf(
-            VoiceComms("Next", "Go to the next step"),
-            VoiceComms("Forward", "Advance to the next step"),
-            VoiceComms("Continue", "Resume the current step"),
-            VoiceComms("Back", "Return to the previous step"),
-            VoiceComms("Repeat", "Repeat the current instruction"),
-            VoiceComms("Start Timer", "Start a cooking timer")
-        )
+
+        selectedLanguage = sharedPreferences.getString("selected_language", "English") ?: "English"
+
+        val commands = when (selectedLanguage) {
+            "Filipino" -> {
+                listOf(
+                    VoiceComms("Susunod", "Pumunta sa susunod na hakbang"),
+                    VoiceComms("Magpatuloy", "Magpatuloy sa kasalukuyang hakbang"),
+                    VoiceComms("Balik", "Bumalik sa nakaraang hakbang"),
+                    VoiceComms("Ulitin", "Ulitin ang kasalukuyang tagubilin"),
+                    VoiceComms("Simulan ang Timer", "Simulan ang timer sa pagluluto")
+                )
+            }
+            else -> {
+                listOf(
+                    VoiceComms("Next", "Go to the next step"),
+                    VoiceComms("Forward", "Advance to the next step"),
+                    VoiceComms("Continue", "Resume the current step"),
+                    VoiceComms("Back", "Return to the previous step"),
+                    VoiceComms("Repeat", "Repeat the current instruction"),
+                    VoiceComms("Start Timer", "Start a cooking timer")
+                )
+            }
+        }
 
         val adapter = CommandListAdapter(commands)
         findViewById<RecyclerView>(R.id.voice_command_list).apply {
             layoutManager = LinearLayoutManager(context)
             this.adapter = adapter
         }
+
         val voiceCommandButton = findViewById<LinearLayout>(R.id.voice_command_button)
         val voiceCommandListContainer = findViewById<LinearLayout>(R.id.voice_command_list_container)
 
@@ -679,7 +696,7 @@ class CookingActivity : AppCompatActivity() {
         val targetLanguageCode = when (selectedLanguage) {
             "Filipino" -> "tl"
             "English" -> "en"
-            else -> "en" // Default to English if language is not recognized
+            else -> "en"
         }
         val voiceName = when (selectedLanguage) {
             "Filipino" -> "fil-PH-Standard-C"

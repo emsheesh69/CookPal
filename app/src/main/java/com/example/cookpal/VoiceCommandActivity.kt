@@ -18,10 +18,8 @@ class VoiceCommandActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_voice_command)
 
-        // Initialize the TableLayout
         tableCommands = findViewById(R.id.table_commands)
 
-        // Initialize and populate voice commands based on selected language
         populateVoiceCommands()
 
         setupNavigationBar()

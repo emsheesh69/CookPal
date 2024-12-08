@@ -6,10 +6,11 @@
     <color name="gray">#808080</color>
     <color name="light_gray">#D3D3D3</color>
     <color name="holo_orange_dark">#ffff8800</color>
-    <color name="highlight_color">#FF000000</color>
+    <color name="highlight_color">#FFFF3333</color>
     <color name="row_odd_color">#F5F5F5</color>
     <color name="row_even_color">#FFFFFF</color>
     <color name="row_header_color">#5D4C4C</color>
-    <color name="black_tint">#80000000</color>
+    <color name="black_tint">#C0000000</color>
     <color name="beige">#F5F5DC</color>
+    <color name="maroon">#800000</color>
 </resources>

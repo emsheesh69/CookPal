@@ -21,9 +21,7 @@ class Login : AppCompatActivity() {
 
         auth = FirebaseAuth.getInstance()
 
-        // Check if the user is already logged in
         if (auth.currentUser != null) {
-            // User is already signed in, redirect to MainActivity
             navigateToMainActivity()
         }
 

@@ -8,12 +8,15 @@
 
     <FrameLayout
         android:layout_width="match_parent"
+        android:background="@drawable/rounded_image"
         android:layout_height="wrap_content">
 
         <ImageView
             android:id="@+id/imageView_food"
             android:layout_width="match_parent"
             android:layout_height="150dp"
+            android:background="@drawable/rounded_image"
+            android:clipToOutline="true"
             android:scaleType="centerCrop" />
 
         <TextView

@@ -21,12 +21,11 @@
             android:layout_height="match_parent"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_filter"
-            app:tint="@color/white" />
+            app:tint="@color/black" />
         <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:padding="2dp"
-            android:background="@drawable/outline_border">
+            android:padding="2dp">
 
             <SearchView
                 android:id="@+id/searchView_home"
@@ -54,6 +53,7 @@
         android:layout_height="wrap_content"
         android:layout_below="@id/recycler_recommended"
         android:layout_marginTop="16dp"
+        android:paddingBottom="56dp"
         android:scrollbars="horizontal" />
 
     <LinearLayout
@@ -61,8 +61,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
-        android:background="#5D4C4C"
-        android:backgroundTint="#422020"
+        android:background="@color/black_tint"
         android:gravity="center"
         android:orientation="horizontal"
         android:padding="8dp">
