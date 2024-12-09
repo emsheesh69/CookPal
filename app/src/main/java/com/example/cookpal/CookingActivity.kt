@@ -92,6 +92,7 @@ class CookingActivity : AppCompatActivity() {
     private val apiKey = "AIzaSyBy9rxbUYggvtsDVovUGFz-cGeY2Ttaowo"
     private var lastRmsTimestamp = 0L
     private val RMS_TIMEOUT = 5000L
+    private var rmsThreshold = 4.0f
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -144,7 +145,7 @@ class CookingActivity : AppCompatActivity() {
         } else {
             initializeSpeechRecognition()
         }
-        mediaPlayer = MediaPlayer.create(this, R.raw.alarm)
+        mediaPlayer = MediaPlayer.create(this, R.raw.alarm2)
         textViewCookingInstruction = findViewById(R.id.cooking_instruction)
         textViewStepIndicator = findViewById(R.id.step_indicator)
         nextButton = findViewById(R.id.next_button)
@@ -333,6 +334,7 @@ class CookingActivity : AppCompatActivity() {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
             putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5)
+            putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
             putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, packageName)
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
         }
@@ -375,13 +377,15 @@ class CookingActivity : AppCompatActivity() {
 
             override fun onRmsChanged(rmsdB: Float) {
                 lastRmsTimestamp = System.currentTimeMillis()
-                if (rmsdB > 4) {
+                if (rmsdB > rmsThreshold) {
                     updateMicStatus("Hearing you...")
                 } else {
                     updateMicStatus("Listening...")
                 }
-                Log.d("SpeechRecognition", "RMS dB: $rmsdB")
+                rmsThreshold = (rmsThreshold + rmsdB) / 2
+                Log.d("SpeechRecognition", "RMS dB: $rmsdB, Threshold: $rmsThreshold")
             }
+
             override fun onEndOfSpeech() {
                 isListening = false
                 updateMicStatus("Processing...")
@@ -441,7 +445,7 @@ class CookingActivity : AppCompatActivity() {
                     if (recognitionRetryCount < MAX_RETRY_ATTEMPTS) {
                         recognitionRetryCount++
                         val retryDelay =
-                            if (error == SpeechRecognizer.ERROR_RECOGNIZER_BUSY) 3000L else 2000L
+                            if (error == SpeechRecognizer.ERROR_RECOGNIZER_BUSY) 5000L else 2000L
                         Log.d(
                             "SpeechRecognizerRetry",
                             "Retrying ($recognitionRetryCount/$MAX_RETRY_ATTEMPTS) after $retryDelay ms"
@@ -563,7 +567,7 @@ class CookingActivity : AppCompatActivity() {
             command.contains("repeat") || command.contains("again") -> {
                 val feedback = "Repeating step ${currentStepIndex + 1}"
                 updateMicStatus(feedback)
-                speakOut("$feedback: ${textViewCookingInstruction.text}")
+//                speakOut("$feedback: ${textViewCookingInstruction.text}")
             }
         }
     }
@@ -589,7 +593,7 @@ class CookingActivity : AppCompatActivity() {
                     command.contains("paulit") || command.contains("sabihin muli") -> {
                 val feedback = "Inuulit ang hakbang ${currentStepIndex + 1}"
                 updateMicStatus(feedback)
-                speakOut("$feedback: ${textViewCookingInstruction.text}")
+//                speakOut("$feedback: ${textViewCookingInstruction.text}")
             }
         }
     }
@@ -601,7 +605,7 @@ class CookingActivity : AppCompatActivity() {
                 updateInstructionView()
                 val feedback = "$progressMessage ${currentStepIndex + 1}"
                 updateMicStatus(feedback)
-                speakOut("$feedback: ${textViewCookingInstruction.text}")
+//                speakOut("$feedback: ${textViewCookingInstruction.text}")
             }
         } else {
             updateMicStatus(limitMessage)
@@ -616,7 +620,7 @@ class CookingActivity : AppCompatActivity() {
                 updateInstructionView()
                 val feedback = "$progressMessage ${currentStepIndex + 1}"
                 updateMicStatus(feedback)
-                speakOut("$feedback: ${textViewCookingInstruction.text}")
+//                speakOut("$feedback: ${textViewCookingInstruction.text}")
             }
         } else {
             updateMicStatus(limitMessage)
@@ -858,7 +862,7 @@ class CookingActivity : AppCompatActivity() {
     private fun playAlarmSound() {
         try {
             if (mediaPlayer == null) {
-                mediaPlayer = MediaPlayer.create(this, R.raw.alarm)
+                mediaPlayer = MediaPlayer.create(this, R.raw.alarm2)
                 mediaPlayer?.setOnCompletionListener {
                     mediaPlayer?.seekTo(0)  // Reset to beginning when done
                 }
