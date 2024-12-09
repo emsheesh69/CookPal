@@ -236,7 +236,7 @@ class RecipeDetails : AppCompatActivity() {
             Picasso.get().load(image).into(imageViewMealImage)
             imageViewMealImage.tag = image
         } else {
-            imageViewMealImage.setImageResource(R.drawable.cookpal)
+            imageViewMealImage.setImageResource(R.drawable.robo_chef)
             imageViewMealImage.tag = null
         }
 
