@@ -14,6 +14,11 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
+import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class About : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -46,6 +51,8 @@ class About : AppCompatActivity() {
 
         val alertDialog = dialog.create()
 
+        alertDialog.show()
+
         val ratingBar = dialogView.findViewById<RatingBar>(R.id.ratingBar)
         val feedbackInput = dialogView.findViewById<EditText>(R.id.feedbackInput)
         val buttonCancel = dialogView.findViewById<Button>(R.id.button_cancel)
@@ -56,42 +63,37 @@ class About : AppCompatActivity() {
             val feedback = feedbackInput.text.toString()
 
             if (rating == 0) {
-                Toast.makeText(context, "Please provide a rating before sending.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    context,
+                    "Please provide a rating before sending.",
+                    Toast.LENGTH_SHORT
+                ).show()
                 return@setOnClickListener
             }
 
-            val subject = "User Feedback for Your App"
-            val body = """
-        Rating: $rating stars
-        Feedback: ${if (feedback.isNotEmpty()) feedback else "No additional feedback provided."}
-    """.trimIndent()
-            Log.i("RateDialog", "Sending email with the following details:")
-            Log.i("RateDialog", "Subject: $subject")
-            Log.i("RateDialog", "Body: $body")
-            val inputMethodManager = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-            inputMethodManager.hideSoftInputFromWindow(dialogView.windowToken, 0)
+            val userEmail = FirebaseAuth.getInstance().currentUser?.email ?: "default@example.com"
+            CoroutineScope(Dispatchers.Main).launch {
+                val isSent = withContext(Dispatchers.IO) {
+                    SendGridHelper.sendRatingEmail(userEmail, rating, feedback)
+                }
 
-            val emailIntent = Intent(Intent.ACTION_SEND).apply {
-                type = "message/rfc822"
-                putExtra(Intent.EXTRA_EMAIL, arrayOf("thecookpal@gmail.com"))
-                putExtra(Intent.EXTRA_SUBJECT, subject)
-                putExtra(Intent.EXTRA_TEXT, body)
+                if (isSent) {
+                    Toast.makeText(context, "Thank you for your feedback!", Toast.LENGTH_SHORT)
+                        .show()
+                } else {
+                    Toast.makeText(
+                        context,
+                        "Failed to send feedback. Please try again.",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+
+                alertDialog.dismiss()
             }
-
-            try {
-                context.startActivity(Intent.createChooser(emailIntent, "Send Feedback"))
-            } catch (e: Exception) {
-                Toast.makeText(context, "No email app found to send feedback.", Toast.LENGTH_SHORT).show()
-                Log.e("RateDialog", "Error sending email: ${e.message}")
-            }
-
-            alertDialog.dismiss()
         }
 
         buttonCancel.setOnClickListener {
             alertDialog.dismiss()
         }
-
-        alertDialog.show()
     }
 }

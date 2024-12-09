@@ -422,6 +422,7 @@ class CookingActivity : AppCompatActivity() {
             override fun onError(error: Int) {
                 isListening = false
                 Log.e("SpeechRecognitionError", "Error code: $error")
+
                 val errorMessage = when (error) {
                     SpeechRecognizer.ERROR_AUDIO -> "Audio recording error"
                     SpeechRecognizer.ERROR_CLIENT -> "Client side error"
@@ -435,10 +436,11 @@ class CookingActivity : AppCompatActivity() {
                     else -> "Unknown error"
                 }
                 updateMicStatus("Error: $errorMessage")
+
+                // Handle errors that require a retry
                 if (error == SpeechRecognizer.ERROR_NO_MATCH ||
                     error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT ||
-                    error == SpeechRecognizer.ERROR_RECOGNIZER_BUSY
-                ) {
+                    error == SpeechRecognizer.ERROR_RECOGNIZER_BUSY) {
 
                     Log.e("SpeechRecognizerError", "Error:  $error")
 
@@ -459,10 +461,7 @@ class CookingActivity : AppCompatActivity() {
                         restartListeningWithDelay(3000) // Wait longer before restarting
                     }
                 } else {
-                    Log.e(
-                        "SpeechRecognizerError",
-                        "Unexpected error:  $error"
-                    )
+                    Log.e("SpeechRecognizerError", "Unexpected error:  $error")
                     restartListeningWithDelay(2000)
                 }
             }
@@ -504,10 +503,9 @@ class CookingActivity : AppCompatActivity() {
         return validCommands.any { command.contains(it) }
     }
     private fun startVoiceRecognition() {
-        if (!isListening && !isSpeaking && !isTimerActive) {  // Add timer check here
+        if (!isListening && !isSpeaking && !isTimerRunning) {  // Ensure timer check here
             try {
                 speechRecognizer.cancel()
-
                 speechRecognizer.startListening(recognitionIntent)
                 isListening = true
                 lastRmsTimestamp = System.currentTimeMillis()
@@ -517,7 +515,7 @@ class CookingActivity : AppCompatActivity() {
                 Handler(Looper.getMainLooper()).postDelayed({
                     if (isListening &&
                         System.currentTimeMillis() - lastRmsTimestamp > RMS_TIMEOUT &&
-                        !isTimerActive) {  // Add timer check here too
+                        !isTimerRunning) {  // Ensure timer check
                         Log.d("SpeechRecognition", "Recognition stuck - forcing restart")
                         speechRecognizer.cancel()
                         isListening = false
@@ -528,11 +526,11 @@ class CookingActivity : AppCompatActivity() {
             } catch (e: Exception) {
                 Log.e("SpeechRecognition", "Error starting recognition: ${e.message}")
                 isListening = false
-                if (!isTimerActive) {  // Only restart if timer is not active
+                if (!isTimerRunning) {  // Don't restart if the timer is running
                     restartListeningWithDelay(1000)
                 }
             }
-        } else if (isTimerActive) {  // Add feedback when trying to start during active timer
+        } else if (isTimerRunning) {
             updateMicStatus("Timer running - voice commands disabled")
             Log.d("SpeechRecognition", "Voice recognition blocked - Timer active")
         }
@@ -628,7 +626,7 @@ class CookingActivity : AppCompatActivity() {
         }
     }
     private fun handleTimerCommand(command: String) {
-        val timePattern = """(\d+)\s*(minute|minutes|min|mins|second|seconds|sec|secs)""".toRegex()
+        val timePattern = """(\d+)\s*(minute|minutes|min|mins|minuto|minuto|second|seconds|sec|secs|segundo|seg)""".toRegex()
         val matches = timePattern.findAll(command.lowercase())
 
         var minutes = 0L
@@ -639,8 +637,8 @@ class CookingActivity : AppCompatActivity() {
             val unit = match.groupValues[2]
 
             when {
-                unit.startsWith("minute") || unit.startsWith("min") -> minutes += number
-                unit.startsWith("second") || unit.startsWith("sec") -> seconds += number
+                unit.startsWith("minute") || unit.startsWith("min") || unit.startsWith("minuto") -> minutes += number
+                unit.startsWith("second") || unit.startsWith("sec") || unit.startsWith("segundo") || unit.startsWith("seg") -> seconds += number
             }
         }
 
@@ -786,6 +784,9 @@ class CookingActivity : AppCompatActivity() {
         }
     }
     private fun startTimer() {
+        if (isTimerRunning) {
+            stopVoiceRecognition()
+        }
         val minutesText = timerMinutesInput.text.toString()
         val secondsText = timerSecondsInput.text.toString()
         val minutes = minutesText.toLongOrNull() ?: 0
@@ -838,6 +839,7 @@ class CookingActivity : AppCompatActivity() {
 
         updateMicStatus("Timer finished - Say 'next' or 'previous' to navigate")
         startVoiceRecognition()
+        isTimerRunning = false
 
         Handler(mainLooper).postDelayed({
             if (isFinishing) return@postDelayed
@@ -892,18 +894,19 @@ class CookingActivity : AppCompatActivity() {
     }
 
     private fun stopTimer() {
-        // Cancel the current timer if running
         timer?.cancel()
 
-        // Reset the UI after stopping the timer
         isTimerRunning = false
         timerText.text = "00:00"
         startStopTimerButton.text = "Start"
 
-        // Optionally, reset input fields or other views if necessary
+        stopVoiceRecognition()
+
         timerMinutesInput.text.clear()
         timerSecondsInput.text.clear()
-startVoiceRecognition()
+
+        startVoiceRecognition()
+
         timer = null
     }
     private fun updateInstructionView() {
@@ -937,10 +940,13 @@ startVoiceRecognition()
 
     override fun onDestroy() {
         super.onDestroy()
+
         timer?.cancel()
         isTimerActive = false
-        speechRecognizer.cancel()
-        speechRecognizer.destroy()
+        speechRecognizer?.apply {
+            cancel()
+            destroy()
+        }
         mediaPlayer?.apply {
             if (isPlaying) {
                 stop()

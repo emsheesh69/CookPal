@@ -13,6 +13,10 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.widget.doOnTextChanged
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class VerifyReg : AppCompatActivity() {
     private lateinit var auth: FirebaseAuth
@@ -78,12 +82,23 @@ class VerifyReg : AppCompatActivity() {
     }
 
     private fun resendOtp() {
-        try {
-            generatedOtp = generateOtp()  // Generate a new OTP
-            SendGridHelper.sendOtpEmail(generatedOtp, email)  // Use SendGridHelper to send OTP
-            Toast.makeText(this, "A new OTP has been sent to your email", Toast.LENGTH_SHORT).show()
-        } catch (e: Exception) {
-            Log.d("VerifyReg", "Failed to resend OTP: ${e.message}")
+        // Launching a coroutine to handle the background task of sending OTP
+        CoroutineScope(Dispatchers.Main).launch {
+            try {
+                generatedOtp = generateOtp()  // Generate a new OTP
+                val isSent = withContext(Dispatchers.IO) {
+                    SendGridHelper.sendOtpEmail(email, generatedOtp)  // Use SendGridHelper to send OTP
+                }
+
+                if (isSent) {
+                    Toast.makeText(this@VerifyReg, "A new OTP has been sent to your email", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this@VerifyReg, "Failed to send OTP", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Log.d("VerifyReg", "Failed to resend OTP: ${e.message}")
+                Toast.makeText(this@VerifyReg, "Error occurred while resending OTP", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
