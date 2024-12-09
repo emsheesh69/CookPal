@@ -12,10 +12,12 @@ import android.os.Bundle
 import android.text.SpannableString
 import android.text.style.UnderlineSpan
 import android.util.Log
+import android.view.View
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
@@ -202,6 +204,8 @@ class MyIngredientsActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        val progressBar = findViewById<ProgressBar>(R.id.progressBar)
+        progressBar.visibility = View.GONE
         loadIngredients()
     }
 
@@ -379,6 +383,12 @@ class MyIngredientsActivity : AppCompatActivity() {
     }
 
     private fun getRecipeSuggestion() {
+
+        // Reference the ProgressBar
+        val progressBar = findViewById<ProgressBar>(R.id.progressBar)
+        // Show the spinner
+        progressBar.visibility = View.VISIBLE
+
         // Log the current state of ingredients
         Log.d("ChatGPT", "Ingredients: ${ingredientsList.joinToString(", ")}")
 
@@ -396,6 +406,9 @@ class MyIngredientsActivity : AppCompatActivity() {
 
         // Validate Ingredients
         validateIngredients(preprocessedIngredients, foodPreferences) { isValid, refinedList, feedbackMessage, hasStrangeIngredients, violatedPreferences ->
+            // Hide the spinner after processing
+            progressBar.visibility = View.GONE
+
             if (isValid) {
                 val dialogBuilder = AlertDialog.Builder(this)
                     .setTitle("Your CookPal's Feedback")
@@ -555,6 +568,10 @@ class MyIngredientsActivity : AppCompatActivity() {
     private fun JSONArray.toList(): List<String> = List(length()) { getString(it) }
 
     private fun generateRecipe(ingredients: List<String>) {
+
+        val progressBar = findViewById<ProgressBar>(R.id.progressBar)
+        progressBar.visibility = View.VISIBLE
+
         // Create a unique key for caching based on the ingredients list
         val ingredientsKey = ingredients.joinToString(",").hashCode().toString()
         // Check if the recipe exists in the cache
@@ -568,8 +585,9 @@ class MyIngredientsActivity : AppCompatActivity() {
             val messages = listOf(
                 RequestMessage("system",
                     """
-                            You are a professional chef, providing clear, concise, and authentic recipes that are well-structured and easy to follow. 
-                            Generate a recipe based on the provided ingredients.
+                            You are a professional chef tasked with, providing clear, concise, and authentic recipes that are well-structured and easy to follow.
+                            Before generating the recipe, analyze the provided ingredients and determine the most appropriate recipe type: snack, meal, dessert, appetizer, or drink. Base your choice on the nature of the ingredients and their typical culinary uses
+                            Once determined, generate a recipe based on the provided ingredients.
                             Each recipe should strictly follow the JSON structure and contain the following fields:
                             {
                                 "title": "The name of the dish",
@@ -578,6 +596,7 @@ class MyIngredientsActivity : AppCompatActivity() {
                                 "instructions": ["Detailed", "step-by-step", "cooking", "instructions"],
                                 "imageURL": "A valid URL pointing to an image of the dish (if available)"
                             }
+                            Include specific details necessary, such as cooking methods for meat based on doneness preferences (rare, medium rare, well done)
                             Ensure that the output is **strictly in JSON format** with no additional text or explanation.
                             Avoid conversational language or pleasantries. Focus solely on providing the recipe content in the above structure.
                             """.trimIndent()
@@ -590,7 +609,11 @@ class MyIngredientsActivity : AppCompatActivity() {
                                 "title": "The name of the dish",
                                 "summary": "A brief description of the dish (1-2 sentences max)",
                                 "ingredients": ["List", "all", "the", "ingredients"],
-                                "instructions": ["Provide", "detailed", "step-by-step", "cooking", "instructions"],
+                                "instructions": [
+                                    "Provide detailed step-by-step cooking instructions.",
+                                    "If the recipe includes meat, specify the cooking instructions for different levels of doneness (e.g., rare, medium rare, well done).",
+                                    "Include internal temperature guidelines for each doneness level, if applicable."
+                                ],
                                 "imageURL": "A URL pointing to an image of the dish (if available)"
                             }
                             """
@@ -599,6 +622,9 @@ class MyIngredientsActivity : AppCompatActivity() {
 
 
             makeOpenAIRequest(messages, maxTokens = 2048, temperature = 0.7f, topP = 0.9f) { response ->
+                // Hide the spinner once the recipe is received
+                progressBar.visibility = View.GONE
+
                 if (response != null) {
                     Log.d("OpenAIResponse", "Raw AI response: $response")
 
